@@ -6,10 +6,10 @@ function HpBar({ currentHp, maxHp, mini }) {
   const percent = Math.round(ratio * 100);
 
   let barColor;
-  if (ratio <= 0) barColor = '#666';
-  else if (ratio <= 0.25) barColor = 'var(--red-glow)';
-  else if (ratio <= 0.5) barColor = '#f1c40f';
-  else barColor = 'var(--green)';
+  if (ratio <= 0) barColor = 'var(--blood)';
+  else if (ratio <= 0.25) barColor = 'var(--blood-glow)';
+  else if (ratio <= 0.5) barColor = '#d9a53d';
+  else barColor = 'var(--emerald)';
 
   return (
     <div className={`hp-bar-container ${mini ? 'hp-bar-mini' : ''}`}>
@@ -31,11 +31,11 @@ function AcShield({ ac, bonus = 0 }) {
       <svg viewBox="0 0 60 72" className="ac-shield-svg">
         <path
           d="M30 2 L56 16 L56 40 Q56 60 30 70 Q4 60 4 40 L4 16 Z"
-          fill="var(--bg-elevated)"
-          stroke={bonus > 0 ? 'var(--blue)' : 'var(--gold)'}
+          fill="var(--wood2)"
+          stroke={bonus > 0 ? 'var(--steel)' : 'var(--brass)'}
           strokeWidth="3"
         />
-        <text x="30" y="44" textAnchor="middle" fill={bonus > 0 ? 'var(--blue)' : 'var(--gold)'} fontSize="22" fontWeight="700" fontFamily="var(--font-body)">
+        <text x="30" y="44" textAnchor="middle" fill={bonus > 0 ? 'var(--steel)' : 'var(--brass)'} fontSize="22" fontWeight="700" fontFamily="Cinzel, serif">
           {totalAc}
         </text>
       </svg>
@@ -49,7 +49,7 @@ export default function PlayerDisplay() {
   if (error || !state) {
     return (
       <div className="player-display">
-        <h1 className="title">⚔️ Initiative Tracker</h1>
+        <h1 className="title">⚔ Initiative Tracker</h1>
         <div className="loading">{error ? 'Waiting for connection...' : 'Loading...'}</div>
       </div>
     );
@@ -77,7 +77,7 @@ export default function PlayerDisplay() {
   return (
     <div className="player-display">
       <header className="player-header">
-        <h1 className="title">⚔️ Initiative Tracker</h1>
+        <h1 className="title">⚔ Initiative Tracker</h1>
         <div className="player-header-row">
           <span className="round-badge round-badge-lg">Round {state.currentRound}</span>
           <Timer
