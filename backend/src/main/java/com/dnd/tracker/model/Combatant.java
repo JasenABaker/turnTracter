@@ -1,6 +1,8 @@
 package com.dnd.tracker.model;
 
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -71,10 +73,74 @@ public class Combatant {
     private Integer deathSaveFailures = 0;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "encounter_id", nullable = false)
+    @JoinColumn(name = "encounter_id")
     private Encounter encounter;
 
+    private UUID sourcePlayerId;
+
+    private UUID sourceTemplateId;
+
+    @Column(length = 1000)
+    private String activeConditions;
+
+    private String size;
+
+    private String creatureType;
+
+    private String alignment;
+
+    private String challengeRating;
+
+    private String speed;
+
+    @Column(nullable = false)
+    private Integer strength = 10;
+
+    @Column(nullable = false)
+    private Integer dexterity = 10;
+
+    @Column(nullable = false)
+    private Integer constitution = 10;
+
+    @Column(nullable = false)
+    private Integer intelligence = 10;
+
+    @Column(nullable = false)
+    private Integer wisdom = 10;
+
+    @Column(nullable = false)
+    private Integer charisma = 10;
+
+    @Column(length = 1000)
+    private String damageImmunities;
+
+    @Column(length = 1000)
+    private String damageResistances;
+
+    @Column(length = 1000)
+    private String damageVulnerabilities;
+
+    @Column(length = 1000)
+    private String conditionImmunities;
+
+    private String senses;
+
+    private String languages;
+
+    @OneToMany(mappedBy = "combatant", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CombatantEntry> entries = new ArrayList<>();
+
     public Combatant() {}
+
+    public void addEntry(CombatantEntry entry) {
+        entries.add(entry);
+        entry.setCombatant(this);
+    }
+
+    public void removeEntry(CombatantEntry entry) {
+        entries.remove(entry);
+        entry.setCombatant(null);
+    }
 
     @Transient
     public boolean getIsBloodied() {
@@ -148,4 +214,67 @@ public class Combatant {
 
     public Encounter getEncounter() { return encounter; }
     public void setEncounter(Encounter encounter) { this.encounter = encounter; }
+
+    public UUID getSourcePlayerId() { return sourcePlayerId; }
+    public void setSourcePlayerId(UUID sourcePlayerId) { this.sourcePlayerId = sourcePlayerId; }
+
+    public UUID getSourceTemplateId() { return sourceTemplateId; }
+    public void setSourceTemplateId(UUID sourceTemplateId) { this.sourceTemplateId = sourceTemplateId; }
+
+    public String getActiveConditions() { return activeConditions; }
+    public void setActiveConditions(String activeConditions) { this.activeConditions = activeConditions; }
+
+    public String getSize() { return size; }
+    public void setSize(String size) { this.size = size; }
+
+    public String getCreatureType() { return creatureType; }
+    public void setCreatureType(String creatureType) { this.creatureType = creatureType; }
+
+    public String getAlignment() { return alignment; }
+    public void setAlignment(String alignment) { this.alignment = alignment; }
+
+    public String getChallengeRating() { return challengeRating; }
+    public void setChallengeRating(String challengeRating) { this.challengeRating = challengeRating; }
+
+    public String getSpeed() { return speed; }
+    public void setSpeed(String speed) { this.speed = speed; }
+
+    public Integer getStrength() { return strength; }
+    public void setStrength(Integer strength) { this.strength = strength; }
+
+    public Integer getDexterity() { return dexterity; }
+    public void setDexterity(Integer dexterity) { this.dexterity = dexterity; }
+
+    public Integer getConstitution() { return constitution; }
+    public void setConstitution(Integer constitution) { this.constitution = constitution; }
+
+    public Integer getIntelligence() { return intelligence; }
+    public void setIntelligence(Integer intelligence) { this.intelligence = intelligence; }
+
+    public Integer getWisdom() { return wisdom; }
+    public void setWisdom(Integer wisdom) { this.wisdom = wisdom; }
+
+    public Integer getCharisma() { return charisma; }
+    public void setCharisma(Integer charisma) { this.charisma = charisma; }
+
+    public String getDamageImmunities() { return damageImmunities; }
+    public void setDamageImmunities(String damageImmunities) { this.damageImmunities = damageImmunities; }
+
+    public String getDamageResistances() { return damageResistances; }
+    public void setDamageResistances(String damageResistances) { this.damageResistances = damageResistances; }
+
+    public String getDamageVulnerabilities() { return damageVulnerabilities; }
+    public void setDamageVulnerabilities(String damageVulnerabilities) { this.damageVulnerabilities = damageVulnerabilities; }
+
+    public String getConditionImmunities() { return conditionImmunities; }
+    public void setConditionImmunities(String conditionImmunities) { this.conditionImmunities = conditionImmunities; }
+
+    public String getSenses() { return senses; }
+    public void setSenses(String senses) { this.senses = senses; }
+
+    public String getLanguages() { return languages; }
+    public void setLanguages(String languages) { this.languages = languages; }
+
+    public List<CombatantEntry> getEntries() { return entries; }
+    public void setEntries(List<CombatantEntry> entries) { this.entries = entries; }
 }

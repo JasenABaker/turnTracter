@@ -4,10 +4,13 @@ import com.dnd.tracker.dto.*;
 import com.dnd.tracker.model.Combatant;
 import com.dnd.tracker.repository.CombatantRepository;
 import com.dnd.tracker.service.BestiaryService;
+import com.dnd.tracker.service.CombatantService;
+import com.dnd.tracker.service.DndBeyondService;
 import com.dnd.tracker.service.InitiativeService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -17,14 +20,27 @@ public class CombatantController {
 
     private final InitiativeService initiativeService;
     private final BestiaryService bestiaryService;
+    private final DndBeyondService dndBeyondService;
     private final CombatantRepository combatantRepository;
+    private final CombatantService combatantService;
 
     public CombatantController(InitiativeService initiativeService,
                                BestiaryService bestiaryService,
-                               CombatantRepository combatantRepository) {
+                               DndBeyondService dndBeyondService,
+                               CombatantRepository combatantRepository,
+                               CombatantService combatantService) {
         this.initiativeService = initiativeService;
         this.bestiaryService = bestiaryService;
+        this.dndBeyondService = dndBeyondService;
         this.combatantRepository = combatantRepository;
+        this.combatantService = combatantService;
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CombatantDto> getById(@PathVariable UUID id) {
+        Combatant combatant = combatantRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Combatant not found: " + id));
+        return ResponseEntity.ok(initiativeService.toCombatantDto(combatant));
     }
 
     @PostMapping("/player")
@@ -43,7 +59,9 @@ public class CombatantController {
         combatant.setIsNpc(request.isNpc() != null && request.isNpc());
         combatant.setIsMonster(request.isMonster() != null && request.isMonster());
 
-        Combatant saved = initiativeService.addCombatant(combatant);
+        Combatant saved = request.encounterId() == null
+                ? combatantService.createTemplate(combatant)
+                : initiativeService.addCombatant(combatant, request.encounterId());
         return ResponseEntity.ok(initiativeService.toCombatantDto(saved));
     }
 
@@ -51,9 +69,32 @@ public class CombatantController {
     public ResponseEntity<CombatantDto> addMonster(@PathVariable String name,
                                                    @RequestBody(required = false) CreateMonsterRequest request) {
         Integer initiative = (request != null) ? request.initiativeScore() : null;
+        UUID encounterId = (request != null) ? request.encounterId() : null;
         Combatant monster = bestiaryService.fetchMonster(name, initiative);
-        Combatant saved = initiativeService.addCombatant(monster);
+        Combatant saved = encounterId == null
+                ? combatantService.createTemplate(monster)
+                : initiativeService.addCombatant(monster, encounterId);
         return ResponseEntity.ok(initiativeService.toCombatantDto(saved));
+    }
+
+    @PostMapping("/bestiary/import-all")
+    public ResponseEntity<BulkImportResultDto> importAllFromBestiary() {
+        return ResponseEntity.ok(bestiaryService.importAllMonsters());
+    }
+
+    @GetMapping("/templates")
+    public ResponseEntity<List<CombatantDto>> getTemplates(@RequestParam(required = false) String q) {
+        List<Combatant> templates = combatantRepository.findByEncounterIsNullOrderByNameAsc();
+        List<CombatantDto> dtos = templates.stream()
+                .filter(c -> q == null || q.isBlank() || c.getName().toLowerCase().contains(q.toLowerCase()))
+                .map(initiativeService::toCombatantDto)
+                .toList();
+        return ResponseEntity.ok(dtos);
+    }
+
+    @PostMapping("/dndbeyond/preview")
+    public ResponseEntity<DndBeyondCharacterDto> previewDndBeyondCharacter(@RequestBody DndBeyondImportRequest request) {
+        return ResponseEntity.ok(dndBeyondService.fetchCharacterPreview(request.characterUrl()));
     }
 
     @PatchMapping("/{id}/hp")
@@ -167,6 +208,13 @@ public class CombatantController {
         return ResponseEntity.ok(initiativeService.toCombatantDto(combatant));
     }
 
+    @PatchMapping("/{id}/active-conditions")
+    public ResponseEntity<CombatantDto> updateActiveConditions(@PathVariable UUID id,
+                                                                 @RequestBody UpdateActiveConditionsRequest request) {
+        Combatant combatant = combatantService.updateActiveConditions(id, request.activeConditions());
+        return ResponseEntity.ok(initiativeService.toCombatantDto(combatant));
+    }
+
     @PatchMapping("/{id}/death-saves")
     public ResponseEntity<CombatantDto> updateDeathSaves(@PathVariable UUID id,
                                                         @RequestBody DeathSaveRequest request) {
@@ -182,5 +230,27 @@ public class CombatantController {
 
         combatantRepository.save(combatant);
         return ResponseEntity.ok(initiativeService.toCombatantDto(combatant));
+    }
+
+    @PatchMapping("/{id}/statblock")
+    public ResponseEntity<CombatantDto> updateStatBlock(@PathVariable UUID id,
+                                                         @RequestBody UpdateCombatantStatBlockRequest request) {
+        return ResponseEntity.ok(initiativeService.toCombatantDto(combatantService.updateStatBlock(id, request)));
+    }
+
+    @PostMapping("/{id}/entries")
+    public ResponseEntity<CombatantDto> addEntry(@PathVariable UUID id, @RequestBody CombatantEntryRequest request) {
+        return ResponseEntity.ok(initiativeService.toCombatantDto(combatantService.addEntry(id, request)));
+    }
+
+    @PatchMapping("/{id}/entries/{entryId}")
+    public ResponseEntity<CombatantDto> updateEntry(@PathVariable UUID id, @PathVariable UUID entryId,
+                                                     @RequestBody CombatantEntryRequest request) {
+        return ResponseEntity.ok(initiativeService.toCombatantDto(combatantService.updateEntry(id, entryId, request)));
+    }
+
+    @DeleteMapping("/{id}/entries/{entryId}")
+    public ResponseEntity<CombatantDto> deleteEntry(@PathVariable UUID id, @PathVariable UUID entryId) {
+        return ResponseEntity.ok(initiativeService.toCombatantDto(combatantService.deleteEntry(id, entryId)));
     }
 }

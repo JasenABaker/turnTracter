@@ -8,7 +8,7 @@ const TIMER_PRESETS = [
   { label: '5 min', value: 300 },
 ];
 
-export default function ActionBar({ state, onAction }) {
+export default function ActionBar({ state, onAction, children }) {
   const handleNext = async () => {
     await nextTurn();
     onAction();
@@ -47,7 +47,7 @@ export default function ActionBar({ state, onAction }) {
         {state.isTimerPaused ? '▶ Resume Timer' : '⏸ Pause Timer'}
       </button>
       <select
-        className="timer-select"
+        className="input input-sm"
         value={state.turnDurationSeconds || 0}
         onChange={handleTimerChange}
         title="Turn timer duration"
@@ -56,6 +56,7 @@ export default function ActionBar({ state, onAction }) {
           <option key={p.value} value={p.value}>{p.label}</option>
         ))}
       </select>
+      {children}
     </div>
   );
 }

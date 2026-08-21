@@ -1,13 +1,14 @@
 package com.dnd.tracker.service;
 
 import com.dnd.tracker.dto.CombatantDto;
+import com.dnd.tracker.dto.CombatantEntryDto;
 import com.dnd.tracker.dto.EncounterStateDto;
 import com.dnd.tracker.model.Combatant;
+import com.dnd.tracker.model.CombatantEntry;
 import com.dnd.tracker.model.Encounter;
-import com.dnd.tracker.model.SavedCombatant;
 import com.dnd.tracker.repository.CombatantRepository;
 import com.dnd.tracker.repository.EncounterRepository;
-import com.dnd.tracker.repository.SavedCombatantRepository;
+import com.dnd.tracker.util.ListStringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,33 +23,26 @@ public class InitiativeService {
 
     private final EncounterRepository encounterRepository;
     private final CombatantRepository combatantRepository;
-    private final SavedCombatantRepository savedCombatantRepository;
 
-    public InitiativeService(EncounterRepository encounterRepository, CombatantRepository combatantRepository,
-                             SavedCombatantRepository savedCombatantRepository) {
+    public InitiativeService(EncounterRepository encounterRepository, CombatantRepository combatantRepository) {
         this.encounterRepository = encounterRepository;
         this.combatantRepository = combatantRepository;
-        this.savedCombatantRepository = savedCombatantRepository;
     }
 
-    public Encounter getOrCreateEncounter() {
-        List<Encounter> encounters = encounterRepository.findAll();
-        if (!encounters.isEmpty()) {
-            return encounters.get(0);
-        }
-        Encounter encounter = new Encounter();
-        return encounterRepository.save(encounter);
+    public Encounter getActiveEncounterOrThrow() {
+        return encounterRepository.findFirstByStatus("active")
+                .orElseThrow(() -> new IllegalStateException("No active encounter"));
     }
 
     @Transactional(readOnly = true)
     public EncounterStateDto getEncounterState() {
-        Encounter encounter = getOrCreateEncounter();
+        Encounter encounter = getActiveEncounterOrThrow();
         List<Combatant> combatants = combatantRepository.findByEncounterIdOrderByTurnOrderAsc(encounter.getId());
         return buildStateDto(encounter, combatants);
     }
 
     public EncounterStateDto advanceTurn() {
-        Encounter encounter = getOrCreateEncounter();
+        Encounter encounter = getActiveEncounterOrThrow();
         List<Combatant> combatants = combatantRepository.findByEncounterIdOrderByTurnOrderAsc(encounter.getId());
 
         if (combatants.isEmpty()) {
@@ -94,7 +88,7 @@ public class InitiativeService {
     }
 
     public EncounterStateDto previousTurn() {
-        Encounter encounter = getOrCreateEncounter();
+        Encounter encounter = getActiveEncounterOrThrow();
         List<Combatant> combatants = combatantRepository.findByEncounterIdOrderByTurnOrderAsc(encounter.getId());
 
         if (combatants.isEmpty()) {
@@ -140,7 +134,7 @@ public class InitiativeService {
     }
 
     public EncounterStateDto toggleTimer(boolean paused) {
-        Encounter encounter = getOrCreateEncounter();
+        Encounter encounter = getActiveEncounterOrThrow();
 
         if (paused && !encounter.getIsTimerPaused()) {
             // Pausing: capture elapsed seconds
@@ -162,46 +156,20 @@ public class InitiativeService {
     }
 
     public EncounterStateDto updateTimerSettings(int turnDurationSeconds) {
-        Encounter encounter = getOrCreateEncounter();
+        Encounter encounter = getActiveEncounterOrThrow();
         encounter.setTurnDurationSeconds(turnDurationSeconds);
         encounterRepository.save(encounter);
         List<Combatant> combatants = combatantRepository.findByEncounterIdOrderByTurnOrderAsc(encounter.getId());
         return buildStateDto(encounter, combatants);
     }
 
-    public Combatant addCombatant(Combatant combatant) {
-        Encounter encounter = getOrCreateEncounter();
+    public Combatant addCombatant(Combatant combatant, UUID encounterId) {
+        Encounter encounter = encounterRepository.findById(encounterId)
+                .orElseThrow(() -> new IllegalArgumentException("Encounter not found: " + encounterId));
         combatant.setEncounter(encounter);
         Combatant saved = combatantRepository.save(combatant);
-        saveCombatantTemplate(saved);
         reSortCombatants(encounter.getId());
         return combatantRepository.findById(saved.getId()).orElse(saved);
-    }
-
-    public EncounterStateDto clearEncounter() {
-        Encounter encounter = getOrCreateEncounter();
-        combatantRepository.deleteAll(combatantRepository.findByEncounterIdOrderByTurnOrderAsc(encounter.getId()));
-        encounter.setCurrentRound(1);
-        encounter.setActiveTurnId(null);
-        resetTimer(encounter);
-        encounterRepository.save(encounter);
-        return buildStateDto(encounter, List.of());
-    }
-
-    private void saveCombatantTemplate(Combatant c) {
-        // Strip trailing numbers from name for template (e.g., "Goblin 1" -> "Goblin")
-        String templateName = c.getName().replaceAll("\\s+\\d+$", "");
-        if (!savedCombatantRepository.existsByNameAndHpAndArmorClassAndIsMonsterAndIsNpc(
-                templateName, c.getHp(), c.getArmorClass(), c.getIsMonster(), c.getIsNpc())) {
-            SavedCombatant saved = new SavedCombatant();
-            saved.setName(templateName);
-            saved.setImageUrl(c.getImageUrl());
-            saved.setHp(c.getHp());
-            saved.setArmorClass(c.getArmorClass());
-            saved.setIsMonster(c.getIsMonster());
-            saved.setIsNpc(c.getIsNpc());
-            savedCombatantRepository.save(saved);
-        }
     }
 
     public void reSortCombatants(UUID encounterId) {
@@ -216,8 +184,12 @@ public class InitiativeService {
         Combatant combatant = combatantRepository.findById(combatantId)
                 .orElseThrow(() -> new IllegalArgumentException("Combatant not found: " + combatantId));
 
-        UUID encounterId = combatant.getEncounter().getId();
         Encounter encounter = combatant.getEncounter();
+        combatantRepository.deleteById(combatantId);
+
+        if (encounter == null) {
+            return;
+        }
 
         // If the deleted combatant is the active turn, advance first
         if (combatantId.equals(encounter.getActiveTurnId())) {
@@ -225,8 +197,7 @@ public class InitiativeService {
             encounterRepository.save(encounter);
         }
 
-        combatantRepository.deleteById(combatantId);
-        reSortCombatants(encounterId);
+        reSortCombatants(encounter.getId());
     }
 
     private void resetTimer(Encounter encounter) {
@@ -310,7 +281,33 @@ public class InitiativeService {
                 c.getTurnOrder(),
                 c.getIsBloodied(),
                 c.getDeathSaveSuccesses(),
-                c.getDeathSaveFailures()
+                c.getDeathSaveFailures(),
+                c.getSize(),
+                c.getCreatureType(),
+                c.getAlignment(),
+                c.getChallengeRating(),
+                c.getSpeed(),
+                c.getStrength(),
+                c.getDexterity(),
+                c.getConstitution(),
+                c.getIntelligence(),
+                c.getWisdom(),
+                c.getCharisma(),
+                ListStringUtils.splitList(c.getDamageImmunities()),
+                ListStringUtils.splitList(c.getDamageResistances()),
+                ListStringUtils.splitList(c.getDamageVulnerabilities()),
+                ListStringUtils.splitList(c.getConditionImmunities()),
+                c.getSenses(),
+                c.getLanguages(),
+                c.getEntries().stream().map(this::toEntryDto).toList(),
+                c.getSourcePlayerId(),
+                c.getSourceTemplateId(),
+                ListStringUtils.splitList(c.getActiveConditions())
         );
+    }
+
+    private CombatantEntryDto toEntryDto(CombatantEntry e) {
+        return new CombatantEntryDto(e.getId(), e.getCategory(), e.getName(), e.getDescription(),
+                e.getRange(), e.getHitOrDc(), e.getDamage());
     }
 }

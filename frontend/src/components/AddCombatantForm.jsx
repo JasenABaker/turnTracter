@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { addPlayer, addMonster } from '../api/api';
+import { addPlayer, addMonster, previewDndBeyondCharacter } from '../api/api';
+import ImageUploadField from './ImageUploadField';
 
-export default function AddCombatantForm({ onAdded }) {
+export default function AddCombatantForm({ onAdded, encounterId }) {
   const [mode, setMode] = useState('player');
   const [name, setName] = useState('');
   const [initiative, setInitiative] = useState('');
@@ -15,6 +16,9 @@ export default function AddCombatantForm({ onAdded }) {
   const [sameInitiative, setSameInitiative] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [characterUrl, setCharacterUrl] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState('');
 
   const resetForm = () => {
     setName('');
@@ -28,6 +32,25 @@ export default function AddCombatantForm({ onAdded }) {
     setQuantity('1');
     setSameInitiative(true);
     setError('');
+    setCharacterUrl('');
+    setImportError('');
+  };
+
+  const handleImport = async () => {
+    setImporting(true);
+    setImportError('');
+    try {
+      const preview = await previewDndBeyondCharacter(characterUrl);
+      setName(preview.name);
+      setHp(String(preview.hp));
+      setAc(String(preview.armorClass));
+      setImageUrl(preview.imageUrl || '');
+      setMode('player');
+    } catch (err) {
+      setImportError(err.message || 'Failed to import character');
+    } finally {
+      setImporting(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -48,6 +71,7 @@ export default function AddCombatantForm({ onAdded }) {
           armorClass: parseInt(ac, 10),
           isNpc,
           isMonster: false,
+          encounterId,
         });
       } else if (mode === 'custom-monster') {
         for (let i = 0; i < count; i++) {
@@ -62,12 +86,13 @@ export default function AddCombatantForm({ onAdded }) {
             isMonster: true,
             unknownHp,
             unknownAc,
+            encounterId,
           });
         }
       } else {
         for (let i = 0; i < count; i++) {
           const suffix = count > 1 ? ` ${i + 1}` : '';
-          await addMonster(name + suffix, sameInitiative ? baseInitiative : baseInitiative);
+          await addMonster(name + suffix, sameInitiative ? baseInitiative : baseInitiative, encounterId);
         }
       }
       resetForm();
@@ -104,8 +129,36 @@ export default function AddCombatantForm({ onAdded }) {
         >
           Monster Lookup
         </button>
+        <button
+          className={`btn btn-sm ${mode === 'dndbeyond' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => { setMode('dndbeyond'); resetForm(); }}
+        >
+          Import D&D Beyond
+        </button>
       </div>
 
+      {mode === 'dndbeyond' ? (
+        <div className="add-form">
+          <div className="form-row">
+            <input
+              type="text"
+              placeholder="D&D Beyond character URL"
+              value={characterUrl}
+              onChange={e => setCharacterUrl(e.target.value)}
+              className="input"
+            />
+          </div>
+          {importError && <div className="form-error">{importError}</div>}
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={importing || !characterUrl}
+            onClick={handleImport}
+          >
+            {importing ? 'Fetching...' : 'Fetch Character'}
+          </button>
+        </div>
+      ) : (
       <form onSubmit={handleSubmit} className="add-form">
         <div className="form-row">
           <input
@@ -160,13 +213,7 @@ export default function AddCombatantForm({ onAdded }) {
                 min="1"
                 className="input input-sm"
               />
-              <input
-                type="text"
-                placeholder="Image URL (optional)"
-                value={imageUrl}
-                onChange={e => setImageUrl(e.target.value)}
-                className="input"
-              />
+              <ImageUploadField value={imageUrl} onChange={setImageUrl} placeholder="Image URL (optional)" />
             </div>
             {mode === 'player' && (
               <label className="checkbox-label">
@@ -207,6 +254,7 @@ export default function AddCombatantForm({ onAdded }) {
           {loading ? 'Adding...' : `Add ${mode === 'player' ? 'Player' : 'Monster'}${showQuantity && parseInt(quantity) > 1 ? ` (×${quantity})` : ''}`}
         </button>
       </form>
+      )}
     </div>
   );
 }

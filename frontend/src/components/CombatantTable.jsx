@@ -1,88 +1,9 @@
 import { useState } from 'react';
 import { updateHp, updateMissedAttack, updateInitiative, updateDeathSaves, removeCombatant, updateBonusAc, updateDamageTaken, updateLastHit, updateCondition } from '../api/api';
-
-function EditableCell({ value, onSave, type = 'number', min }) {
-  const [editing, setEditing] = useState(false);
-  const [editValue, setEditValue] = useState(value);
-
-  const handleSave = () => {
-    setEditing(false);
-    const parsed = type === 'number' ? parseInt(editValue, 10) : editValue;
-    if (parsed !== value && !isNaN(parsed)) {
-      onSave(parsed);
-    }
-  };
-
-  if (editing) {
-    return (
-      <input
-        type={type}
-        value={editValue}
-        min={min}
-        onChange={e => setEditValue(e.target.value)}
-        onBlur={handleSave}
-        onKeyDown={e => { if (e.key === 'Enter') handleSave(); }}
-        autoFocus
-        className="cell-input"
-      />
-    );
-  }
-
-  return (
-    <span className="editable-cell" onClick={() => { setEditValue(value); setEditing(true); }}>
-      {value}
-    </span>
-  );
-}
-
-function HpDeltaCell({ currentHp, maxHp, tempHp, onSave }) {
-  const [editing, setEditing] = useState(false);
-  const [delta, setDelta] = useState('');
-
-  const handleSave = () => {
-    setEditing(false);
-    const parsed = parseInt(delta, 10);
-    if (!isNaN(parsed) && parsed !== 0) {
-      if (parsed < 0 && tempHp > 0) {
-        const absDamage = Math.abs(parsed);
-        if (absDamage <= tempHp) {
-          onSave({ currentHp, tempHp: tempHp - absDamage });
-        } else {
-          const remainingDamage = absDamage - tempHp;
-          onSave({ currentHp: Math.max(0, currentHp - remainingDamage), tempHp: 0 });
-        }
-      } else {
-        const newHp = Math.max(0, currentHp + parsed);
-        onSave({ currentHp: newHp });
-      }
-    }
-    setDelta('');
-  };
-
-  if (editing) {
-    return (
-      <span className="hp-delta-editor">
-        <span className="hp-current">{currentHp}</span>
-        <input
-          type="number"
-          value={delta}
-          placeholder="+/−"
-          onChange={e => setDelta(e.target.value)}
-          onBlur={handleSave}
-          onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') { setEditing(false); setDelta(''); } }}
-          autoFocus
-          className="cell-input hp-delta-input"
-        />
-      </span>
-    );
-  }
-
-  return (
-    <span className="editable-cell hp-cell" onClick={() => { setDelta(''); setEditing(true); }}>
-      {currentHp}<span className="hp-max">/{maxHp}</span>
-    </span>
-  );
-}
+import EditableCell from './EditableCell';
+import HpDeltaCell from './HpDeltaCell';
+import AddConditionDialog from './AddConditionDialog';
+import { getCombatantStatus } from '../utils/combatantStatus';
 
 function DamageDeltaCell({ damageTaken, onSave }) {
   const [editing, setEditing] = useState(false);
@@ -149,23 +70,9 @@ function DeathSaveTracker({ id, successes, failures, onUpdate }) {
   );
 }
 
-function getStatus(c) {
-  if (c.manualDead) return { label: '💀 Dead', className: 'status-dead' };
-  if (c.unknownHp) {
-    if (c.manualBloodied) return { label: '🩸 Bloodied', className: 'status-bloodied' };
-    return null;
-  }
-  if (c.currentHp <= 0) {
-    if (c.isMonster) return { label: '💀 Dead', className: 'status-dead' };
-    if (c.deathSaveFailures >= 3) return { label: '💀 Dead', className: 'status-dead' };
-    if (c.deathSaveSuccesses >= 3) return { label: '💤 Stable', className: 'status-stable' };
-    return { label: '😵 Unconscious', className: 'status-unconscious' };
-  }
-  if (c.isBloodied) return { label: '🩸 Bloodied', className: 'status-bloodied' };
-  return null;
-}
-
 export default function CombatantTable({ combatants, activeTurnId, onUpdate }) {
+  const [conditionCombatant, setConditionCombatant] = useState(null);
+
   const handleDelete = async (id) => {
     await removeCombatant(id);
     onUpdate();
@@ -177,7 +84,7 @@ export default function CombatantTable({ combatants, activeTurnId, onUpdate }) {
 
   return (
     <div className="table-container">
-      <table className="combatant-table">
+      <table className="table">
         <thead>
           <tr>
             <th>#</th>
@@ -196,29 +103,33 @@ export default function CombatantTable({ combatants, activeTurnId, onUpdate }) {
         </thead>
         <tbody>
           {combatants.map(c => {
-            const status = getStatus(c);
+            const status = getCombatantStatus(c);
             const isDead = c.manualDead || (!c.unknownHp && c.currentHp <= 0 && (c.isMonster || c.deathSaveFailures >= 3));
             const isUnconscious = !c.unknownHp && c.currentHp <= 0 && !c.isMonster && c.deathSaveFailures < 3;
 
             return (
-              <tr key={c.id} className={`${c.id === activeTurnId ? 'active-row' : ''} ${isDead ? 'dead-row' : ''}`}>
+              <tr
+                key={c.id}
+                className={`combatant-row-clickable ${c.id === activeTurnId ? 'active-row' : ''} ${isDead ? 'dead-row' : ''}`}
+                onClick={() => setConditionCombatant(c)}
+              >
                 <td>{c.turnOrder}</td>
                 <td className="name-cell">
                   {c.imageUrl && <img src={c.imageUrl} alt="" className="table-avatar" />}
-                  <span className={isDead ? 'text-muted' : ''}>{c.name}</span>
+                  <span className={isDead ? 'strikethrough' : ''}>{c.name}</span>
                 </td>
                 <td>
-                  <span className={`type-badge ${c.isMonster ? 'monster' : c.isNpc ? 'npc' : 'player'}`}>
+                  <span className={`tag ${c.isMonster ? 'tag-neutral' : c.isNpc ? 'tag-plain' : 'tag-accent'}`}>
                     {c.isMonster ? 'Monster' : c.isNpc ? 'NPC' : 'Player'}
                   </span>
                 </td>
-                <td>
+                <td onClick={e => e.stopPropagation()}>
                   <EditableCell
                     value={c.initiativeScore}
                     onSave={val => { updateInitiative(c.id, val).then(onUpdate); }}
                   />
                 </td>
-                <td>
+                <td onClick={e => e.stopPropagation()}>
                   {c.unknownHp ? (
                     <DamageDeltaCell
                       damageTaken={c.damageTaken || 0}
@@ -233,7 +144,7 @@ export default function CombatantTable({ combatants, activeTurnId, onUpdate }) {
                     />
                   )}
                 </td>
-                <td>
+                <td onClick={e => e.stopPropagation()}>
                   {c.unknownHp ? (
                     <span className="text-muted">—</span>
                   ) : (
@@ -254,7 +165,7 @@ export default function CombatantTable({ combatants, activeTurnId, onUpdate }) {
                     </span>
                   )}
                 </td>
-                <td>
+                <td onClick={e => e.stopPropagation()}>
                   {c.unknownAc ? (
                     <span className="text-muted">—</span>
                   ) : (
@@ -265,22 +176,29 @@ export default function CombatantTable({ combatants, activeTurnId, onUpdate }) {
                     />
                   )}
                 </td>
-                <td>
+                <td onClick={e => e.stopPropagation()}>
                   <EditableCell
                     value={c.highestMissedAttack}
                     min={0}
                     onSave={val => { updateMissedAttack(c.id, val).then(onUpdate); }}
                   />
                 </td>
-                <td>
+                <td onClick={e => e.stopPropagation()}>
                   <EditableCell
                     value={c.lastHitNumber || 0}
                     min={0}
                     onSave={val => { updateLastHit(c.id, val).then(onUpdate); }}
                   />
                 </td>
-                <td>
-                  {status && <span className={`status-badge ${status.className}`}>{status.label}</span>}
+                <td onClick={e => e.stopPropagation()}>
+                  {status && <span className={status.className}>{status.label}</span>}
+                  {c.activeConditions && c.activeConditions.length > 0 && (
+                    <div className="active-condition-tags">
+                      {c.activeConditions.map(cond => (
+                        <span key={cond} className="tag tag-outline">{cond}</span>
+                      ))}
+                    </div>
+                  )}
                   {c.unknownHp && (
                     <div className="condition-toggles">
                       <button
@@ -308,8 +226,8 @@ export default function CombatantTable({ combatants, activeTurnId, onUpdate }) {
                     />
                   )}
                 </td>
-                <td>
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(c.id)} title="Remove">
+                <td onClick={e => e.stopPropagation()}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(c.id)} title="Remove">
                     ✕
                   </button>
                 </td>
@@ -318,6 +236,14 @@ export default function CombatantTable({ combatants, activeTurnId, onUpdate }) {
           })}
         </tbody>
       </table>
+
+      {conditionCombatant && (
+        <AddConditionDialog
+          combatant={conditionCombatant}
+          onClose={() => setConditionCombatant(null)}
+          onSaved={() => { onUpdate(); }}
+        />
+      )}
     </div>
   );
 }

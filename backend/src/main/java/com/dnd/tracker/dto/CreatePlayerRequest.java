@@ -1,5 +1,7 @@
 package com.dnd.tracker.dto;
 
+import java.util.UUID;
+
 public record CreatePlayerRequest(
         String name,
         String imageUrl,
@@ -9,5 +11,6 @@ public record CreatePlayerRequest(
         Boolean isNpc,
         Boolean isMonster,
         Boolean unknownHp,
-        Boolean unknownAc
+        Boolean unknownAc,
+        UUID encounterId
 ) {}

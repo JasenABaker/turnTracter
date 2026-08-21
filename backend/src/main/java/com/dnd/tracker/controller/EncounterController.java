@@ -41,9 +41,4 @@ public class EncounterController {
     public ResponseEntity<EncounterStateDto> updateTimerSettings(@RequestBody TimerSettingsRequest request) {
         return ResponseEntity.ok(initiativeService.updateTimerSettings(request.turnDurationSeconds()));
     }
-
-    @DeleteMapping("/clear")
-    public ResponseEntity<EncounterStateDto> clearEncounter() {
-        return ResponseEntity.ok(initiativeService.clearEncounter());
-    }
 }

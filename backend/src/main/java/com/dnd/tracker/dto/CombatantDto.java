@@ -1,5 +1,6 @@
 package com.dnd.tracker.dto;
 
+import java.util.List;
 import java.util.UUID;
 
 public record CombatantDto(
@@ -24,5 +25,26 @@ public record CombatantDto(
         Integer turnOrder,
         boolean isBloodied,
         Integer deathSaveSuccesses,
-        Integer deathSaveFailures
+        Integer deathSaveFailures,
+        String size,
+        String creatureType,
+        String alignment,
+        String challengeRating,
+        String speed,
+        Integer strength,
+        Integer dexterity,
+        Integer constitution,
+        Integer intelligence,
+        Integer wisdom,
+        Integer charisma,
+        List<String> damageImmunities,
+        List<String> damageResistances,
+        List<String> damageVulnerabilities,
+        List<String> conditionImmunities,
+        String senses,
+        String languages,
+        List<CombatantEntryDto> entries,
+        UUID sourcePlayerId,
+        UUID sourceTemplateId,
+        List<String> activeConditions
 ) {}

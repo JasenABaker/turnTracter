@@ -13,4 +13,6 @@ public interface CombatantRepository extends JpaRepository<Combatant, UUID> {
     List<Combatant> findByEncounterIdOrderByTurnOrderAsc(UUID encounterId);
 
     List<Combatant> findByEncounterIdOrderByInitiativeScoreDesc(UUID encounterId);
+
+    List<Combatant> findByEncounterIsNullOrderByNameAsc();
 }

@@ -1,55 +1,45 @@
 import { useEncounterState } from '../hooks/useEncounterState';
 import Timer from './Timer';
+import HpBar from './HpBar';
+import { getCombatantStatus } from '../utils/combatantStatus';
 
-function HpBar({ currentHp, maxHp, mini }) {
-  const ratio = maxHp > 0 ? Math.max(0, currentHp / maxHp) : 0;
-  const percent = Math.round(ratio * 100);
-
-  let barColor;
-  if (ratio <= 0) barColor = 'var(--blood)';
-  else if (ratio <= 0.25) barColor = 'var(--blood-glow)';
-  else if (ratio <= 0.5) barColor = '#d9a53d';
-  else barColor = 'var(--emerald)';
-
+function DeathSavesDisplay({ successes, failures }) {
   return (
-    <div className={`hp-bar-container ${mini ? 'hp-bar-mini' : ''}`}>
-      <div className="hp-bar-track">
-        <div
-          className="hp-bar-fill"
-          style={{ width: `${percent}%`, backgroundColor: barColor }}
-        />
+    <div className="death-saves-prominent">
+      <div className="death-save-row">
+        <span className="death-save-row-label">Fails</span>
+        {[0, 1, 2].map(i => (
+          <span key={i} className={`death-save-pip fail ${i < failures ? 'filled' : ''}`}>
+            {i < failures ? '💀' : ''}
+          </span>
+        ))}
       </div>
-      {!mini && <span className="hp-bar-text">{currentHp} / {maxHp}</span>}
-    </div>
-  );
-}
-
-function AcShield({ ac, bonus = 0 }) {
-  const totalAc = ac + bonus;
-  return (
-    <div className={`ac-shield${bonus > 0 ? ' ac-shield-boosted' : ''}`}>
-      <svg viewBox="0 0 60 72" className="ac-shield-svg">
-        <path
-          d="M30 2 L56 16 L56 40 Q56 60 30 70 Q4 60 4 40 L4 16 Z"
-          fill="var(--wood2)"
-          stroke={bonus > 0 ? 'var(--steel)' : 'var(--brass)'}
-          strokeWidth="3"
-        />
-        <text x="30" y="44" textAnchor="middle" fill={bonus > 0 ? 'var(--steel)' : 'var(--brass)'} fontSize="22" fontWeight="700" fontFamily="Cinzel, serif">
-          {totalAc}
-        </text>
-      </svg>
+      <div className="death-save-row">
+        <span className="death-save-row-label">Saves</span>
+        {[0, 1, 2].map(i => (
+          <span key={i} className={`death-save-pip success ${i < successes ? 'filled' : ''}`} />
+        ))}
+      </div>
     </div>
   );
 }
 
 export default function PlayerDisplay() {
-  const { state, error } = useEncounterState(1000);
+  const { state, error, noActiveEncounter } = useEncounterState(1000);
+
+  if (noActiveEncounter) {
+    return (
+      <div className="player-display">
+        <h1>Turn Tracker</h1>
+        <div className="loading">Waiting for the GM to start an encounter...</div>
+      </div>
+    );
+  }
 
   if (error || !state) {
     return (
       <div className="player-display">
-        <h1 className="title">⚔ Initiative Tracker</h1>
+        <h1>Turn Tracker</h1>
         <div className="loading">{error ? 'Waiting for connection...' : 'Loading...'}</div>
       </div>
     );
@@ -65,105 +55,108 @@ export default function PlayerDisplay() {
     }
   }
 
-  const isDead = activeCombatant && (
-    activeCombatant.manualDead ||
-    (!activeCombatant.unknownHp && activeCombatant.currentHp <= 0 &&
-      (activeCombatant.isMonster || activeCombatant.deathSaveFailures >= 3))
-  );
-  const isUnconscious = activeCombatant && !activeCombatant.unknownHp &&
-    activeCombatant.currentHp <= 0 &&
-    !activeCombatant.isMonster && activeCombatant.deathSaveFailures < 3;
+  const status = activeCombatant && getCombatantStatus(activeCombatant);
+  const isDead = status?.key === 'dead';
+  const isDownButAlive = status?.key === 'unconscious' || status?.key === 'stable';
+  const isBloodied = status?.key === 'bloodied';
+  const showAcBadge = activeCombatant && activeCombatant.armorClass > 0 && !activeCombatant.isMonster;
 
   return (
     <div className="player-display">
       <header className="player-header">
-        <h1 className="title">⚔ Initiative Tracker</h1>
-        <div className="player-header-row">
+        <h1>Turn Tracker</h1>
+        <div className="header-stats">
           <span className="round-badge round-badge-lg">Round {state.currentRound}</span>
-          <Timer
-            timerStartTime={state.timerStartTime}
-            isTimerPaused={state.isTimerPaused}
-            pausedElapsedSeconds={state.pausedElapsedSeconds}
-            turnDurationSeconds={state.turnDurationSeconds}
-            large
-          />
+          {state.turnDurationSeconds > 0 && (
+            <Timer
+              timerStartTime={state.timerStartTime}
+              isTimerPaused={state.isTimerPaused}
+              pausedElapsedSeconds={state.pausedElapsedSeconds}
+              turnDurationSeconds={state.turnDurationSeconds}
+              large
+            />
+          )}
         </div>
       </header>
 
       <div className="player-layout">
         <div className="player-main">
           {activeCombatant ? (
-            <div className={`active-card ${isDead ? 'card-dead' : ''}`}>
-              <h2 className="active-combatant-name">{activeCombatant.name}</h2>
-              <div className="active-image-wrapper">
+            <div>
+              <div className={`active-image-wrapper ${isDead ? 'card-dead' : ''} ${isBloodied ? 'bloodied-glow' : ''}`}>
                 {activeCombatant.imageUrl ? (
                   <img
                     src={activeCombatant.imageUrl}
                     alt={activeCombatant.name}
-                    className="active-combatant-img"
+                    className="active-combatant-img plate"
                   />
                 ) : (
-                  <div className="active-combatant-img placeholder-img">
+                  <div className="active-combatant-img placeholder-img plate">
                     <span>{activeCombatant.name.charAt(0)}</span>
                   </div>
                 )}
-                {activeCombatant.armorClass > 0 && !activeCombatant.isMonster && (
-                  <AcShield ac={activeCombatant.armorClass} bonus={activeCombatant.bonusAc || 0} />
-                )}
-                {activeCombatant.isMonster && activeCombatant.isBloodied && !isDead && (
-                  <div className="active-status-overlay">
-                    <span className="bloodied-badge">🩸 Bloodied</span>
+
+                <div className="plate-scrim-top">
+                  <h2>{activeCombatant.name}</h2>
+                  {showAcBadge && (
+                    <span className={`ac-badge ${activeCombatant.bonusAc > 0 ? 'ac-badge-boosted' : ''}`}>
+                      {activeCombatant.armorClass + (activeCombatant.bonusAc || 0)}
+                    </span>
+                  )}
+                </div>
+
+                {!activeCombatant.isMonster && !isDead && !isDownButAlive && (
+                  <div className="plate-scrim-bottom">
+                    <span className="hp-bar-text">
+                      <span>HP</span>
+                      <span>{activeCombatant.currentHp} / {activeCombatant.hp}</span>
+                    </span>
+                    <HpBar currentHp={activeCombatant.currentHp} maxHp={activeCombatant.hp} mini />
+                    {activeCombatant.tempHp > 0 && (
+                      <div style={{ marginTop: 8 }}>
+                        <span className="tag tag-accent">+{activeCombatant.tempHp} Temp HP</span>
+                      </div>
+                    )}
                   </div>
                 )}
-                {activeCombatant.isMonster && activeCombatant.manualDead && (
-                  <div className="active-status-overlay">
-                    <span className="dead-badge">💀 Dead</span>
+
+                {status?.key === 'unconscious' && (
+                  <div className="plate-scrim-bottom unconscious-overlay">
+                    <span className={`${status.className} status-badge-prominent`}>{status.label}</span>
+                    <DeathSavesDisplay
+                      successes={activeCombatant.deathSaveSuccesses}
+                      failures={activeCombatant.deathSaveFailures}
+                    />
+                  </div>
+                )}
+
+                {activeCombatant.activeConditions && activeCombatant.activeConditions.length > 0 && (
+                  <div className="condition-overlay">
+                    <span className="condition-overlay-text">
+                      {activeCombatant.activeConditions.join(' · ')}
+                    </span>
                   </div>
                 )}
               </div>
 
-              {isDead ? (
+              {((status && status.key !== 'unconscious') || (activeCombatant.isMonster && !isDead)) && (
                 <div className="active-status-line">
-                  <span className="status-badge status-dead">💀 Dead</span>
-                </div>
-              ) : isUnconscious ? (
-                <div className="active-status-line">
-                  {activeCombatant.deathSaveSuccesses >= 3 ? (
-                    <span className="status-badge status-stable">💤 Stable</span>
-                  ) : (
-                    <>
-                      <span className="status-badge status-unconscious">😵 Unconscious</span>
-                      <div className="death-saves-display">
-                        <span className="ds-label">Saves:</span>
-                        {[0, 1, 2].map(i => (
-                          <span key={i} className={`save-dot save-success ${i < activeCombatant.deathSaveSuccesses ? 'filled' : ''}`}>●</span>
-                        ))}
-                        <span className="ds-label">Fails:</span>
-                        {[0, 1, 2].map(i => (
-                          <span key={i} className={`save-dot save-failure ${i < activeCombatant.deathSaveFailures ? 'filled' : ''}`}>●</span>
-                        ))}
-                      </div>
-                    </>
+                  {status && status.key !== 'unconscious' && (
+                    <span className={`${status.className} status-badge-prominent`}>{status.label}</span>
                   )}
-                </div>
-              ) : activeCombatant.isMonster ? (
-                <div className="active-status-line">
-                  {activeCombatant.unknownHp && (
-                    <span className="stat-pill damage-pill">{activeCombatant.damageTaken || 0} dmg taken</span>
-                  )}
-                  {activeCombatant.unknownAc && (
-                    <span className="stat-pill ac-unknown-pill">AC: ?</span>
-                  )}
-                  {activeCombatant.lastHitNumber > 0 && (
-                    <span className="stat-pill">Last Hit: {activeCombatant.lastHitNumber}</span>
-                  )}
-                  <span className="stat-pill">Highest Miss: {activeCombatant.highestMissedAttack}</span>
-                </div>
-              ) : (
-                <div className="hp-bar-section">
-                  <HpBar currentHp={activeCombatant.currentHp} maxHp={activeCombatant.hp} />
-                  {activeCombatant.tempHp > 0 && (
-                    <span className="stat-pill temp-hp">+{activeCombatant.tempHp} temp</span>
+                  {activeCombatant.isMonster && !isDead && (
+                    <div className="monster-stats">
+                      {activeCombatant.unknownHp && (
+                        <span className="tag tag-outline">{activeCombatant.damageTaken || 0} dmg taken</span>
+                      )}
+                      {activeCombatant.unknownAc && (
+                        <span className="tag tag-outline">AC: ?</span>
+                      )}
+                      {activeCombatant.lastHitNumber > 0 && (
+                        <span className="tag tag-neutral tag-lg">Last Hit: {activeCombatant.lastHitNumber}</span>
+                      )}
+                      <span className="tag tag-neutral">Highest Miss: {activeCombatant.highestMissedAttack}</span>
+                    </div>
                   )}
                 </div>
               )}
@@ -187,6 +180,7 @@ export default function PlayerDisplay() {
                     <span className="upcoming-item-name">
                       {c.name}
                       {dead && ' 💀'}
+                      {c.isMonster && c.isBloodied && !dead && ' 🩸'}
                       {c.currentHp <= 0 && !c.isMonster && c.deathSaveFailures < 3 && ' 😵'}
                     </span>
                     {isPlayer && c.currentHp > 0 && (
