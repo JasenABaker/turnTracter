@@ -4,6 +4,8 @@ import { addTemplateToEncounter } from '../api/api';
 export default function AddToEncounterDialog({ monster, encounter, onDone, onCancel }) {
   const [count, setCount] = useState('1');
   const [initiative, setInitiative] = useState('');
+  const [unknownHp, setUnknownHp] = useState(false);
+  const [unknownAc, setUnknownAc] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const needsInitiative = encounter.status === 'active';
@@ -15,7 +17,7 @@ export default function AddToEncounterDialog({ monster, encounter, onDone, onCan
     try {
       for (let i = 0; i < parsedCount; i++) {
         const name = parsedCount > 1 ? `${monster.name} ${i + 1}` : null;
-        await addTemplateToEncounter(encounter.id, monster.id, initiativeScore, name);
+        await addTemplateToEncounter(encounter.id, monster.id, initiativeScore, name, unknownHp, unknownAc);
       }
       onDone();
     } finally {
@@ -52,6 +54,22 @@ export default function AddToEncounterDialog({ monster, encounter, onDone, onCan
               />
             </div>
           )}
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={unknownHp}
+              onChange={e => setUnknownHp(e.target.checked)}
+            />
+            Unknown HP
+          </label>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={unknownAc}
+              onChange={e => setUnknownAc(e.target.checked)}
+            />
+            Unknown AC
+          </label>
         </div>
         <div className="dialog-actions">
           <button className="btn btn-secondary" onClick={onCancel} disabled={saving}>Cancel</button>

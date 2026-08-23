@@ -238,10 +238,15 @@ export function addPlayerToEncounter(encounterId, playerId, initiativeScore) {
   });
 }
 
-export function addTemplateToEncounter(encounterId, templateId, initiativeScore, name) {
+export function addTemplateToEncounter(encounterId, templateId, initiativeScore, name, unknownHp, unknownAc) {
   return request(`/encounters/${encounterId}/combatant-templates/${templateId}`, {
     method: 'POST',
-    body: JSON.stringify({ initiativeScore: initiativeScore ?? null, name: name ?? null }),
+    body: JSON.stringify({
+      initiativeScore: initiativeScore ?? null,
+      name: name ?? null,
+      unknownHp: unknownHp ?? null,
+      unknownAc: unknownAc ?? null,
+    }),
   });
 }
 

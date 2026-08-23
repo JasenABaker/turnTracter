@@ -96,9 +96,10 @@ public class EncounterManagementService {
         return combatant;
     }
 
-    public Combatant addTemplate(UUID encounterId, UUID templateId, Integer initiativeScore, String name) {
+    public Combatant addTemplate(UUID encounterId, UUID templateId, Integer initiativeScore, String name,
+                                  Boolean unknownHp, Boolean unknownAc) {
         Encounter encounter = findOrThrow(encounterId);
-        Combatant combatant = combatantService.cloneIntoEncounter(templateId, encounter, initiativeScore, name);
+        Combatant combatant = combatantService.cloneIntoEncounter(templateId, encounter, initiativeScore, name, unknownHp, unknownAc);
         initiativeService.reSortCombatants(encounterId);
         return combatant;
     }

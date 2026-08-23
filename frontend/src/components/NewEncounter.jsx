@@ -56,12 +56,12 @@ export default function NewEncounter() {
     setPendingCountTemplate(template);
   };
 
-  const handleConfirmAddCount = async (count) => {
+  const handleConfirmAddCount = async (count, unknownHp, unknownAc) => {
     const template = pendingCountTemplate;
     setPendingCountTemplate(null);
     for (let i = 0; i < count; i++) {
       const name = count > 1 ? `${template.name} ${i + 1}` : null;
-      await addTemplateToEncounter(id, template.id, null, name);
+      await addTemplateToEncounter(id, template.id, null, name, unknownHp, unknownAc);
     }
     refreshDetail();
   };

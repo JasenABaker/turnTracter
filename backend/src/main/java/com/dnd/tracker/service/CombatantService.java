@@ -107,20 +107,26 @@ public class CombatantService {
         return combatantRepository.save(draft);
     }
 
-    public Combatant cloneIntoEncounter(UUID templateId, Encounter target, Integer initiativeScore, String nameOverride) {
+    public Combatant cloneIntoEncounter(UUID templateId, Encounter target, Integer initiativeScore, String nameOverride,
+                                         Boolean unknownHpOverride, Boolean unknownAcOverride) {
         Combatant template = findOrThrow(templateId);
+
+        boolean unknownHp = unknownHpOverride != null ? unknownHpOverride
+                : (template.getUnknownHp() != null && template.getUnknownHp());
+        boolean unknownAc = unknownAcOverride != null ? unknownAcOverride
+                : (template.getUnknownAc() != null && template.getUnknownAc());
 
         Combatant clone = new Combatant();
         clone.setName(nameOverride != null ? nameOverride : template.getName());
         clone.setImageUrl(template.getImageUrl());
         clone.setInitiativeScore(initiativeScore != null ? initiativeScore : 0);
-        clone.setHp(template.getHp());
-        clone.setCurrentHp(template.getHp());
-        clone.setArmorClass(template.getArmorClass());
+        clone.setHp(unknownHp ? 0 : template.getHp());
+        clone.setCurrentHp(unknownHp ? 0 : template.getHp());
+        clone.setArmorClass(unknownAc ? 0 : template.getArmorClass());
         clone.setIsMonster(template.getIsMonster());
         clone.setIsNpc(template.getIsNpc());
-        clone.setUnknownHp(template.getUnknownHp());
-        clone.setUnknownAc(template.getUnknownAc());
+        clone.setUnknownHp(unknownHp);
+        clone.setUnknownAc(unknownAc);
         clone.setSize(template.getSize());
         clone.setCreatureType(template.getCreatureType());
         clone.setAlignment(template.getAlignment());

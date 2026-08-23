@@ -14,6 +14,8 @@ export default function GmDashboard() {
   const [addFormOpen, setAddFormOpen] = useState(true);
   const [pendingTemplate, setPendingTemplate] = useState(null);
   const [pendingInitiative, setPendingInitiative] = useState('');
+  const [pendingUnknownHp, setPendingUnknownHp] = useState(false);
+  const [pendingUnknownAc, setPendingUnknownAc] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
 
   if (noActiveEncounter) {
@@ -47,9 +49,18 @@ export default function GmDashboard() {
 
   const handleAddTemplate = async () => {
     if (!pendingTemplate) return;
-    await addTemplateToEncounter(state.id, pendingTemplate.id, parseInt(pendingInitiative, 10) || 0);
+    await addTemplateToEncounter(
+      state.id,
+      pendingTemplate.id,
+      parseInt(pendingInitiative, 10) || 0,
+      null,
+      pendingUnknownHp,
+      pendingUnknownAc
+    );
     setPendingTemplate(null);
     setPendingInitiative('');
+    setPendingUnknownHp(false);
+    setPendingUnknownAc(false);
     refresh();
   };
 
@@ -136,8 +147,29 @@ export default function GmDashboard() {
               onChange={e => setPendingInitiative(e.target.value)}
               autoFocus
             />
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={pendingUnknownHp}
+                onChange={e => setPendingUnknownHp(e.target.checked)}
+              />
+              Unknown HP
+            </label>
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={pendingUnknownAc}
+                onChange={e => setPendingUnknownAc(e.target.checked)}
+              />
+              Unknown AC
+            </label>
             <button className="btn btn-primary btn-sm" onClick={handleAddTemplate}>Add</button>
-            <button className="btn btn-ghost btn-sm" onClick={() => setPendingTemplate(null)}>Cancel</button>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => { setPendingTemplate(null); setPendingUnknownHp(false); setPendingUnknownAc(false); }}
+            >
+              Cancel
+            </button>
           </div>
         )}
       </div>

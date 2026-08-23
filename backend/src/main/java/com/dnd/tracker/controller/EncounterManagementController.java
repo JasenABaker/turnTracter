@@ -60,7 +60,9 @@ public class EncounterManagementController {
                                                            @RequestBody(required = false) AddToEncounterRequest request) {
         Integer initiativeScore = request != null ? request.initiativeScore() : null;
         String name = request != null ? request.name() : null;
-        encounterManagementService.addTemplate(id, templateId, initiativeScore, name);
+        Boolean unknownHp = request != null ? request.unknownHp() : null;
+        Boolean unknownAc = request != null ? request.unknownAc() : null;
+        encounterManagementService.addTemplate(id, templateId, initiativeScore, name, unknownHp, unknownAc);
         return ResponseEntity.ok(encounterManagementService.getDetail(id));
     }
 
