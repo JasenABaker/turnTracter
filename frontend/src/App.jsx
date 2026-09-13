@@ -13,10 +13,12 @@ import NewPlayer from './components/NewPlayer';
 import InitiativeSetting from './components/InitiativeSetting';
 import MonsterCompendium from './components/MonsterCompendium';
 import PlayerCompendium from './components/PlayerCompendium';
+import DiceRollerDrawer from './components/DiceRollerDrawer';
 
 export default function App() {
   return (
     <BrowserRouter>
+      <DiceRollerDrawer />
       <Routes>
         <Route path="/" element={<SplashPage />} />
         <Route element={<AppLayout />}>

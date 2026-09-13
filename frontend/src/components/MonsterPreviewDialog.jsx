@@ -21,6 +21,13 @@ export default function MonsterPreviewDialog({ monster, onClose, onAddToEncounte
       <div className="dialog dialog-wide" onClick={e => e.stopPropagation()}>
         <div className="dialog-title">{monster.name}</div>
         <div className="dialog-body">
+          {monster.imageUrl ? (
+            <img src={monster.imageUrl} alt="" className="stat-block-portrait plate" />
+          ) : (
+            <div className="stat-block-portrait placeholder-img plate">
+              <span>{monster.name.charAt(0)}</span>
+            </div>
+          )}
           {subtitle.trim() && <div className="stat-card-subtitle">{subtitle}</div>}
           <div className="stat-card-vitals">
             <span><strong>AC</strong> {monster.unknownAc ? '?' : monster.armorClass}</span>
