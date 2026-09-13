@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import AbilityScoreGrid from './AbilityScoreGrid';
 
 const ENTRY_LABELS = [
@@ -66,6 +67,7 @@ export default function MonsterPreviewDialog({ monster, onClose, onAddToEncounte
         </div>
         <div className="dialog-actions">
           <button className="btn btn-secondary" onClick={onClose}>Close</button>
+          <Link to={`/monster-creator?edit=${monster.id}`} className="btn btn-secondary">Edit</Link>
           <button className="btn btn-primary" onClick={onAddToEncounter}>+ Add to Encounter</button>
         </div>
       </div>
