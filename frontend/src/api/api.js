@@ -66,6 +66,13 @@ export function addMonster(name, initiativeScore, encounterId) {
   });
 }
 
+export function importMonsterFromDndBeyond(monsterUrl, initiativeScore, encounterId) {
+  return request('/combatants/dndbeyond/monster', {
+    method: 'POST',
+    body: JSON.stringify({ monsterUrl, initiativeScore, encounterId }),
+  });
+}
+
 export function importAllFromBestiary() {
   return request('/combatants/bestiary/import-all', { method: 'POST' });
 }

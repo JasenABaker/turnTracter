@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { getCombatant, addPlayer, addMonster, updateCombatantStatBlock } from '../api/api';
+import { getCombatant, addPlayer, addMonster, importMonsterFromDndBeyond, updateCombatantStatBlock } from '../api/api';
 import ImageUploadField from './ImageUploadField';
 import CombatantEntrySection from './CombatantEntrySection';
 
@@ -65,6 +65,7 @@ export default function MonsterNpcCreator() {
   const [form, setForm] = useState(blankForm);
   const [combatant, setCombatant] = useState(null);
   const [bestiaryName, setBestiaryName] = useState('');
+  const [dndBeyondUrl, setDndBeyondUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -157,6 +158,22 @@ export default function MonsterNpcCreator() {
     }
   };
 
+  const handleDndBeyondFetch = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const initiative = forEncounterId ? (parseInt(form.initiativeScore, 10) || 10) : null;
+      const created = await importMonsterFromDndBeyond(dndBeyondUrl, initiative, forEncounterId || null);
+      setCombatant(created);
+      setForm(formFromCombatant(created));
+      navigate(editUrlFor(created.id), { replace: true });
+    } catch (err) {
+      setError(err.message || 'Failed to import creature');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSaveStatBlock = async () => {
     if (!combatant) return;
     setLoading(true);
@@ -199,6 +216,12 @@ export default function MonsterNpcCreator() {
           >
             Import from Bestiary
           </button>
+          <button
+            className={`btn btn-sm ${mode === 'dndbeyond' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setMode('dndbeyond')}
+          >
+            Import from D&amp;D Beyond
+          </button>
         </div>
       )}
 
@@ -228,6 +251,38 @@ export default function MonsterNpcCreator() {
             className="btn btn-primary"
             disabled={loading || !bestiaryName || (forEncounterId && !form.initiativeScore)}
             onClick={handleBestiaryFetch}
+          >
+            {loading ? 'Fetching…' : 'Fetch'}
+          </button>
+        </div>
+      )}
+
+      {!isEditing && mode === 'dndbeyond' && (
+        <div className="add-form">
+          <div className="form-row">
+            <input
+              type="text"
+              placeholder="D&D Beyond monster URL (e.g. https://www.dndbeyond.com/monsters/16907-goblin)"
+              className="input"
+              value={dndBeyondUrl}
+              onChange={e => setDndBeyondUrl(e.target.value)}
+            />
+            {forEncounterId && (
+              <input
+                type="number"
+                placeholder="Initiative"
+                className="input input-sm"
+                value={form.initiativeScore}
+                onChange={setField('initiativeScore')}
+              />
+            )}
+          </div>
+          {error && <div className="form-error">{error}</div>}
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={loading || !dndBeyondUrl || (forEncounterId && !form.initiativeScore)}
+            onClick={handleDndBeyondFetch}
           >
             {loading ? 'Fetching…' : 'Fetch'}
           </button>

@@ -5,6 +5,7 @@ import com.dnd.tracker.model.Combatant;
 import com.dnd.tracker.repository.CombatantRepository;
 import com.dnd.tracker.service.BestiaryService;
 import com.dnd.tracker.service.CombatantService;
+import com.dnd.tracker.service.DndBeyondMonsterService;
 import com.dnd.tracker.service.DndBeyondService;
 import com.dnd.tracker.service.InitiativeService;
 import org.springframework.http.ResponseEntity;
@@ -21,17 +22,20 @@ public class CombatantController {
     private final InitiativeService initiativeService;
     private final BestiaryService bestiaryService;
     private final DndBeyondService dndBeyondService;
+    private final DndBeyondMonsterService dndBeyondMonsterService;
     private final CombatantRepository combatantRepository;
     private final CombatantService combatantService;
 
     public CombatantController(InitiativeService initiativeService,
                                BestiaryService bestiaryService,
                                DndBeyondService dndBeyondService,
+                               DndBeyondMonsterService dndBeyondMonsterService,
                                CombatantRepository combatantRepository,
                                CombatantService combatantService) {
         this.initiativeService = initiativeService;
         this.bestiaryService = bestiaryService;
         this.dndBeyondService = dndBeyondService;
+        this.dndBeyondMonsterService = dndBeyondMonsterService;
         this.combatantRepository = combatantRepository;
         this.combatantService = combatantService;
     }
@@ -95,6 +99,15 @@ public class CombatantController {
     @PostMapping("/dndbeyond/preview")
     public ResponseEntity<DndBeyondCharacterDto> previewDndBeyondCharacter(@RequestBody DndBeyondImportRequest request) {
         return ResponseEntity.ok(dndBeyondService.fetchCharacterPreview(request.characterUrl()));
+    }
+
+    @PostMapping("/dndbeyond/monster")
+    public ResponseEntity<CombatantDto> importMonsterFromDndBeyond(@RequestBody ImportMonsterFromUrlRequest request) {
+        Combatant monster = dndBeyondMonsterService.fetchMonster(request.monsterUrl(), request.initiativeScore());
+        Combatant saved = request.encounterId() == null
+                ? combatantService.createTemplate(monster)
+                : initiativeService.addCombatant(monster, request.encounterId());
+        return ResponseEntity.ok(initiativeService.toCombatantDto(saved));
     }
 
     @PatchMapping("/{id}/hp")

@@ -25,4 +25,15 @@ public class WebClientConfig {
                 .exchangeStrategies(strategies)
                 .build();
     }
+
+    @Bean
+    public WebClient dndBeyondMonsterWebClient() {
+        ExchangeStrategies strategies = ExchangeStrategies.builder()
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(8 * 1024 * 1024))
+                .build();
+        return WebClient.builder()
+                .baseUrl("https://www.dndbeyond.com")
+                .exchangeStrategies(strategies)
+                .build();
+    }
 }
