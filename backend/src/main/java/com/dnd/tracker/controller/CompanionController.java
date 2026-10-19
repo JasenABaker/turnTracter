@@ -70,4 +70,17 @@ public class CompanionController {
     public ResponseEntity<CompanionDto> deleteEntry(@PathVariable UUID id, @PathVariable UUID entryId) {
         return ResponseEntity.ok(companionService.toCompanionDto(companionService.deleteEntry(id, entryId)));
     }
+
+    @PatchMapping("/{id}/entries/{entryId}/charges")
+    public ResponseEntity<CompanionDto> updateEntryCharges(@PathVariable UUID id, @PathVariable UUID entryId,
+                                                            @RequestBody Map<String, Integer> request) {
+        return ResponseEntity.ok(companionService.toCompanionDto(
+                companionService.updateEntryCharges(id, entryId, request.get("usedCharges"))));
+    }
+
+    @PatchMapping("/{id}/reset-charges")
+    public ResponseEntity<CompanionDto> resetCharges(@PathVariable UUID id,
+                                                      @RequestParam(required = false) String scope) {
+        return ResponseEntity.ok(companionService.toCompanionDto(companionService.resetCharges(id, scope)));
+    }
 }

@@ -11,6 +11,8 @@ export default function CompanionEntrySection({ title, category, companionId, en
   const [newRange, setNewRange] = useState('');
   const [newHitOrDc, setNewHitOrDc] = useState('');
   const [newDamage, setNewDamage] = useState('');
+  const [newMaxCharges, setNewMaxCharges] = useState('');
+  const [newRechargeType, setNewRechargeType] = useState('day');
 
   const resetNewEntry = () => {
     setNewName('');
@@ -18,10 +20,13 @@ export default function CompanionEntrySection({ title, category, companionId, en
     setNewRange('');
     setNewHitOrDc('');
     setNewDamage('');
+    setNewMaxCharges('');
+    setNewRechargeType('day');
   };
 
   const handleAdd = async () => {
     if (!newName.trim()) return;
+    const maxCharges = newMaxCharges ? Math.max(0, parseInt(newMaxCharges, 10) || 0) : null;
     await addCompanionEntry(companionId, {
       category,
       name: newName,
@@ -29,6 +34,8 @@ export default function CompanionEntrySection({ title, category, companionId, en
       range: isAction ? newRange : null,
       hitOrDc: isAction ? newHitOrDc : null,
       damage: isAction ? newDamage : null,
+      maxCharges,
+      rechargeType: maxCharges ? newRechargeType : null,
     });
     resetNewEntry();
     setAdding(false);
@@ -74,6 +81,19 @@ export default function CompanionEntrySection({ title, category, companionId, en
               </span>
             </>
           )}
+          <span className="entry-charges" title="Charges">
+            <EditableCell value={entry.maxCharges || 0} min={0} onSave={val => handleFieldSave(entry.id, 'maxCharges', val)} />
+          </span>
+          {entry.maxCharges > 0 && (
+            <select
+              className="input input-sm entry-recharge-select"
+              value={entry.rechargeType || 'day'}
+              onChange={e => handleFieldSave(entry.id, 'rechargeType', e.target.value)}
+            >
+              <option value="day">Per Day</option>
+              <option value="short-rest">Per Short Rest</option>
+            </select>
+          )}
           <button className="btn btn-danger btn-xs" onClick={() => handleDelete(entry.id)} title={`Remove ${singular}`}>
             ✕
           </button>
@@ -115,6 +135,25 @@ export default function CompanionEntrySection({ title, category, companionId, en
                 onChange={e => setNewDamage(e.target.value)}
               />
             </>
+          )}
+          <input
+            type="number"
+            className="input input-xs"
+            placeholder="Charges"
+            min="0"
+            value={newMaxCharges}
+            onChange={e => setNewMaxCharges(e.target.value)}
+            title="Number of charges (leave blank for none)"
+          />
+          {newMaxCharges && parseInt(newMaxCharges, 10) > 0 && (
+            <select
+              className="input input-sm"
+              value={newRechargeType}
+              onChange={e => setNewRechargeType(e.target.value)}
+            >
+              <option value="day">Per Day</option>
+              <option value="short-rest">Per Short Rest</option>
+            </select>
           )}
           <button className="btn btn-primary btn-xs" onClick={handleAdd}>Add</button>
           <button className="btn btn-ghost btn-xs" onClick={() => { setAdding(false); resetNewEntry(); }}>Cancel</button>

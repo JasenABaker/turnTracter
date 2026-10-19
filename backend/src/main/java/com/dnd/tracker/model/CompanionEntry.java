@@ -26,6 +26,13 @@ public class CompanionEntry {
 
     private String damage;
 
+    private Integer maxCharges;
+
+    @Column(nullable = false)
+    private Integer usedCharges = 0;
+
+    private String rechargeType;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "companion_id", nullable = false)
     private Companion companion;
@@ -52,6 +59,15 @@ public class CompanionEntry {
 
     public String getDamage() { return damage; }
     public void setDamage(String damage) { this.damage = damage; }
+
+    public Integer getMaxCharges() { return maxCharges; }
+    public void setMaxCharges(Integer maxCharges) { this.maxCharges = maxCharges; }
+
+    public Integer getUsedCharges() { return usedCharges; }
+    public void setUsedCharges(Integer usedCharges) { this.usedCharges = usedCharges; }
+
+    public String getRechargeType() { return rechargeType; }
+    public void setRechargeType(String rechargeType) { this.rechargeType = rechargeType; }
 
     public Companion getCompanion() { return companion; }
     public void setCompanion(Companion companion) { this.companion = companion; }

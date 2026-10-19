@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { updateCompanionHp, updateCompanionTempAc } from '../api/api';
+import { updateCompanionHp, updateCompanionTempAc, updateCompanionEntryCharges, resetCompanionCharges } from '../api/api';
 import EditableCell from './EditableCell';
 import HpDeltaCell from './HpDeltaCell';
 import HpBar from './HpBar';
@@ -12,9 +12,38 @@ const ENTRY_SECTIONS = [
   ['reaction', 'Reactions'],
 ];
 
+function ChargeBoxes({ companionId, entry, onUpdate }) {
+  const toggle = (index) => {
+    const next = index < entry.usedCharges ? index : index + 1;
+    updateCompanionEntryCharges(companionId, entry.id, next).then(onUpdate);
+  };
+
+  return (
+    <span className="charge-boxes" title={`${entry.maxCharges - entry.usedCharges}/${entry.maxCharges} remaining`}>
+      {Array.from({ length: entry.maxCharges }, (_, i) => (
+        <input
+          key={i}
+          type="checkbox"
+          className="charge-checkbox"
+          checked={i < entry.usedCharges}
+          onChange={() => toggle(i)}
+        />
+      ))}
+      <span className="charge-recharge-label">
+        {entry.rechargeType === 'short-rest' ? 'short rest' : 'day'}
+      </span>
+    </span>
+  );
+}
+
 export default function CompanionStatBlockCard({ companion, onUpdate }) {
   const [open, setOpen] = useState(false);
   const totalAc = companion.armorClass + (companion.tempAc || 0);
+  const hasCharges = companion.entries.some(e => e.maxCharges > 0);
+
+  const handleResetCharges = (scope) => {
+    resetCompanionCharges(companion.id, scope).then(onUpdate);
+  };
 
   const traitLines = [
     ['Damage Immunities', companion.damageImmunities],
@@ -76,6 +105,16 @@ export default function CompanionStatBlockCard({ companion, onUpdate }) {
                 <span className="stat-block-inline-editor">
                   Bonus AC: <EditableCell value={companion.tempAc || 0} min={0} onSave={val => updateCompanionTempAc(companion.id, val).then(onUpdate)} />
                 </span>
+                {hasCharges && (
+                  <span className="stat-block-charge-resets">
+                    <button className="btn btn-ghost btn-xs" onClick={() => handleResetCharges('short-rest')}>
+                      Reset (Short Rest)
+                    </button>
+                    <button className="btn btn-ghost btn-xs" onClick={() => handleResetCharges('all')}>
+                      Reset (Long Rest)
+                    </button>
+                  </span>
+                )}
               </div>
 
               <AbilityScoreGrid companion={companion} readOnly />
@@ -126,6 +165,9 @@ export default function CompanionStatBlockCard({ companion, onUpdate }) {
                     {entries.map(entry => (
                       <p className="stat-block-entry" key={entry.id}>
                         <strong className="stat-block-entry-name">{entry.name}.</strong> {entry.description}
+                        {entry.maxCharges > 0 && (
+                          <ChargeBoxes companionId={companion.id} entry={entry} onUpdate={onUpdate} />
+                        )}
                       </p>
                     ))}
                   </div>

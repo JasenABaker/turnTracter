@@ -6,5 +6,7 @@ public record CompanionEntryRequest(
         String description,
         String range,
         String hitOrDc,
-        String damage
+        String damage,
+        Integer maxCharges,
+        String rechargeType
 ) {}

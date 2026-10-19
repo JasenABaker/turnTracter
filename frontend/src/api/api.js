@@ -333,3 +333,15 @@ export function updateCompanionEntry(id, entryId, entry) {
 export function deleteCompanionEntry(id, entryId) {
   return request(`/companions/${id}/entries/${entryId}`, { method: 'DELETE' });
 }
+
+export function updateCompanionEntryCharges(id, entryId, usedCharges) {
+  return request(`/companions/${id}/entries/${entryId}/charges`, {
+    method: 'PATCH',
+    body: JSON.stringify({ usedCharges }),
+  });
+}
+
+export function resetCompanionCharges(id, scope) {
+  const query = scope ? `?scope=${encodeURIComponent(scope)}` : '';
+  return request(`/companions/${id}/reset-charges${query}`, { method: 'PATCH' });
+}

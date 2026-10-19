@@ -9,5 +9,8 @@ public record CompanionEntryDto(
         String description,
         String range,
         String hitOrDc,
-        String damage
+        String damage,
+        Integer maxCharges,
+        Integer usedCharges,
+        String rechargeType
 ) {}

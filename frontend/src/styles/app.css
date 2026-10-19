@@ -1059,6 +1059,15 @@ img.active-combatant-img {
 .stat-block-entry { line-height: 1.6; margin: 0 0 var(--space-2); font-size: 13px; }
 .stat-block-entry-name { font-style: italic; }
 
+.stat-block-charge-resets { display: flex; gap: var(--space-2); }
+
+.charge-boxes { display: inline-flex; align-items: center; gap: 4px; margin-left: var(--space-2); vertical-align: middle; }
+.charge-checkbox { width: 14px; height: 14px; accent-color: var(--color-accent); cursor: pointer; }
+.charge-recharge-label { font-size: 11px; font-style: normal; text-transform: uppercase; letter-spacing: 0.04em; color: color-mix(in srgb, var(--color-text) 55%, transparent); margin-left: 2px; }
+
+.entry-charges { width: 32px; text-align: center; }
+.entry-recharge-select { width: auto; }
+
 /* ---- Splash page ---- */
 
 .splash {

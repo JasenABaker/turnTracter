@@ -16,6 +16,7 @@ import java.util.UUID;
 public class CompanionService {
 
     private static final List<String> VALID_CATEGORIES = List.of("trait", "action", "bonus-action", "reaction");
+    private static final List<String> VALID_RECHARGE_TYPES = List.of("day", "short-rest");
 
     private final CompanionRepository companionRepository;
     private final BestiaryService bestiaryService;
@@ -103,6 +104,9 @@ public class CompanionService {
         entry.setRange(req.range());
         entry.setHitOrDc(req.hitOrDc());
         entry.setDamage(req.damage());
+        entry.setMaxCharges(req.maxCharges());
+        entry.setRechargeType(validateRechargeType(req.rechargeType()));
+        entry.setUsedCharges(0);
         companion.addEntry(entry);
         return companionRepository.save(companion);
     }
@@ -119,6 +123,34 @@ public class CompanionService {
         if (req.range() != null) entry.setRange(req.range());
         if (req.hitOrDc() != null) entry.setHitOrDc(req.hitOrDc());
         if (req.damage() != null) entry.setDamage(req.damage());
+        if (req.maxCharges() != null) {
+            entry.setMaxCharges(req.maxCharges());
+            entry.setUsedCharges(Math.min(entry.getUsedCharges(), req.maxCharges()));
+        }
+        if (req.rechargeType() != null) entry.setRechargeType(validateRechargeType(req.rechargeType()));
+        return companionRepository.save(companion);
+    }
+
+    public Companion updateEntryCharges(UUID companionId, UUID entryId, Integer usedCharges) {
+        Companion companion = findOrThrow(companionId);
+        CompanionEntry entry = companion.getEntries().stream()
+                .filter(e -> e.getId().equals(entryId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Entry not found: " + entryId));
+        int max = entry.getMaxCharges() != null ? entry.getMaxCharges() : 0;
+        entry.setUsedCharges(Math.max(0, Math.min(max, usedCharges != null ? usedCharges : 0)));
+        return companionRepository.save(companion);
+    }
+
+    public Companion resetCharges(UUID companionId, String scope) {
+        Companion companion = findOrThrow(companionId);
+        boolean resetAll = !"short-rest".equals(scope);
+        for (CompanionEntry entry : companion.getEntries()) {
+            if (entry.getMaxCharges() == null || entry.getMaxCharges() <= 0) continue;
+            if (resetAll || "short-rest".equals(entry.getRechargeType())) {
+                entry.setUsedCharges(0);
+            }
+        }
         return companionRepository.save(companion);
     }
 
@@ -166,7 +198,7 @@ public class CompanionService {
 
     private CompanionEntryDto toEntryDto(CompanionEntry e) {
         return new CompanionEntryDto(e.getId(), e.getCategory(), e.getName(), e.getDescription(),
-                e.getRange(), e.getHitOrDc(), e.getDamage());
+                e.getRange(), e.getHitOrDc(), e.getDamage(), e.getMaxCharges(), e.getUsedCharges(), e.getRechargeType());
     }
 
     private Companion findOrThrow(UUID id) {
@@ -179,5 +211,13 @@ public class CompanionService {
             throw new IllegalArgumentException("Invalid category: " + category);
         }
         return category;
+    }
+
+    private String validateRechargeType(String rechargeType) {
+        if (rechargeType == null || rechargeType.isBlank()) return null;
+        if (!VALID_RECHARGE_TYPES.contains(rechargeType)) {
+            throw new IllegalArgumentException("Invalid recharge type: " + rechargeType);
+        }
+        return rechargeType;
     }
 }
