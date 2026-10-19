@@ -3,7 +3,7 @@ import StatBlockBody from './StatBlockBody';
 
 const SHOW_DELAY_MS = 300;
 const HIDE_DELAY_MS = 100;
-const POPOVER_WIDTH = 360;
+const POPOVER_MARGIN = 16;
 
 export default function HoverStatBlock({ monster, children, className, as: Tag = 'span', ...rest }) {
   const [visible, setVisible] = useState(false);
@@ -17,10 +17,9 @@ export default function HoverStatBlock({ monster, children, className, as: Tag =
     // of its own — measure the first rendered child instead so positioning is always accurate.
     const rect = (e.currentTarget.firstElementChild || e.currentTarget).getBoundingClientRect();
     showTimerRef.current = setTimeout(() => {
-      setPosition({
-        top: rect.bottom + 8,
-        left: Math.min(rect.left, window.innerWidth - POPOVER_WIDTH - 16),
-      });
+      // Popover is nearly full-width (matches .action-bar/.dashboard content width), so just
+      // pin it to a fixed side margin rather than aligning to the trigger's left edge.
+      setPosition({ top: rect.bottom + 8, left: POPOVER_MARGIN });
       setVisible(true);
     }, SHOW_DELAY_MS);
   }, []);
