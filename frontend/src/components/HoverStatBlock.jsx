@@ -5,7 +5,7 @@ const SHOW_DELAY_MS = 300;
 const HIDE_DELAY_MS = 100;
 const POPOVER_WIDTH = 360;
 
-export default function HoverStatBlock({ monster, children, className }) {
+export default function HoverStatBlock({ monster, children, className, as: Tag = 'span', ...rest }) {
   const [visible, setVisible] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const showTimerRef = useRef(null);
@@ -36,7 +36,7 @@ export default function HoverStatBlock({ monster, children, className }) {
   }, []);
 
   return (
-    <span className={`stat-hover-trigger ${className || ''}`} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+    <Tag className={`stat-hover-trigger ${className || ''}`} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} {...rest}>
       {children}
       {visible && (
         <div
@@ -51,6 +51,6 @@ export default function HoverStatBlock({ monster, children, className }) {
           </div>
         </div>
       )}
-    </span>
+    </Tag>
   );
 }

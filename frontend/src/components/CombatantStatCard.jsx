@@ -47,14 +47,12 @@ export default function CombatantStatCard({ members, isActive, onUpdate }) {
 
   return (
     <>
-      <div className={cardClass} onClick={() => setShowDialog(true)}>
+      <HoverStatBlock as="div" monster={primary} className={cardClass} onClick={() => setShowDialog(true)}>
         <div className="stat-card-header">
-          <HoverStatBlock monster={primary}>
-            <h3 className={isDead ? 'strikethrough' : ''}>
-              {baseName}
-              {members.length > 1 && <span className="stat-card-count">×{members.length}</span>}
-            </h3>
-          </HoverStatBlock>
+          <h3 className={isDead ? 'strikethrough' : ''}>
+            {baseName}
+            {members.length > 1 && <span className="stat-card-count">×{members.length}</span>}
+          </h3>
           <div className="stat-card-header-right">
             {statusEmoji && <span className="tag tag-outline">{statusEmoji}</span>}
             {members.length === 1 ? (
@@ -120,7 +118,7 @@ export default function CombatantStatCard({ members, isActive, onUpdate }) {
             );
           })}
         </div>
-      </div>
+      </HoverStatBlock>
 
       {showDialog && (
         <CombatantStatusDialog

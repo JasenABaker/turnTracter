@@ -1252,7 +1252,8 @@ img.active-combatant-img {
 
 .stat-hover-trigger { display: inline-block; cursor: help; }
 .stat-hover-trigger:hover { text-decoration: underline dotted; }
-.stat-card-header .stat-hover-trigger { display: contents; }
+.stat-card.stat-hover-trigger { cursor: pointer; }
+.stat-card.stat-hover-trigger:hover { text-decoration: none; }
 
 .stat-hover-popover { z-index: 70; max-height: 80vh; overflow-y: auto; width: min(360px, calc(100vw - 32px)); }
 
