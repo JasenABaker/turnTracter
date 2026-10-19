@@ -47,7 +47,7 @@ export default function CombatantStatCard({ members, isActive, onUpdate }) {
 
   return (
     <>
-      <HoverStatBlock as="div" monster={primary} className={cardClass} onClick={() => setShowDialog(true)}>
+      <HoverStatBlock as="div" monster={primary} className={cardClass} onClick={() => setShowDialog(true)} center>
         <div className="stat-card-header">
           <h3 className={isDead ? 'strikethrough' : ''}>
             {baseName}

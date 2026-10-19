@@ -7,7 +7,7 @@ export default function MonsterPreviewDialog({ monster, onClose, onAddToEncounte
       <div className="dialog dialog-wide" onClick={e => e.stopPropagation()}>
         <div className="dialog-title">{monster.name}</div>
         <div className="dialog-body">
-          <StatBlockBody monster={monster} />
+          <StatBlockBody monster={monster} fullDescriptions />
         </div>
         <div className="dialog-actions">
           <button className="btn btn-secondary" onClick={onClose}>Close</button>
