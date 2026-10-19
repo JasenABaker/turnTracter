@@ -13,7 +13,9 @@ export default function HoverStatBlock({ monster, children, className }) {
 
   const handleMouseEnter = useCallback((e) => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    const rect = e.currentTarget.getBoundingClientRect();
+    // currentTarget may be `display: contents` (e.g. inside a flex header), which has no box
+    // of its own — measure the first rendered child instead so positioning is always accurate.
+    const rect = (e.currentTarget.firstElementChild || e.currentTarget).getBoundingClientRect();
     showTimerRef.current = setTimeout(() => {
       setPosition({
         top: rect.bottom + 8,
