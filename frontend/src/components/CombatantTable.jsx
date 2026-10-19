@@ -3,6 +3,7 @@ import { updateHp, updateMissedAttack, updateInitiative, updateDeathSaves, remov
 import EditableCell from './EditableCell';
 import HpDeltaCell from './HpDeltaCell';
 import AddConditionDialog from './AddConditionDialog';
+import HoverStatBlock from './HoverStatBlock';
 import { getCombatantStatus } from '../utils/combatantStatus';
 
 function DamageDeltaCell({ damageTaken, onSave }) {
@@ -116,7 +117,13 @@ export default function CombatantTable({ combatants, activeTurnId, onUpdate }) {
                 <td>{c.turnOrder}</td>
                 <td className="name-cell">
                   {c.imageUrl && <img src={c.imageUrl} alt="" className="table-avatar" />}
-                  <span className={isDead ? 'strikethrough' : ''}>{c.name}</span>
+                  {(c.isMonster || c.isNpc) ? (
+                    <HoverStatBlock monster={c}>
+                      <span className={isDead ? 'strikethrough' : ''}>{c.name}</span>
+                    </HoverStatBlock>
+                  ) : (
+                    <span className={isDead ? 'strikethrough' : ''}>{c.name}</span>
+                  )}
                 </td>
                 <td>
                   <span className={`tag ${c.isMonster ? 'tag-neutral' : c.isNpc ? 'tag-plain' : 'tag-accent'}`}>

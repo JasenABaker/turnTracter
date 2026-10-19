@@ -1250,6 +1250,12 @@ img.active-combatant-img {
 .dialog-body { font-size: 14px; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
 
+.stat-hover-trigger { display: inline-block; cursor: help; }
+.stat-hover-trigger:hover { text-decoration: underline dotted; }
+.stat-card-header .stat-hover-trigger { display: contents; }
+
+.stat-hover-popover { z-index: 70; max-height: 80vh; overflow-y: auto; width: min(360px, calc(100vw - 32px)); }
+
 /* ---- Dice roller drawer ---- */
 
 .dice-fab {

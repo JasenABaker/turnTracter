@@ -1,4 +1,5 @@
 import { getCombatantStatus } from '../utils/combatantStatus';
+import HoverStatBlock from './HoverStatBlock';
 
 export default function SimpleTurnOrder({ combatants, activeTurnId, currentRound }) {
   return (
@@ -10,13 +11,14 @@ export default function SimpleTurnOrder({ combatants, activeTurnId, currentRound
           const isDead = status?.key === 'dead';
           const isActive = c.id === activeTurnId;
           const emoji = status ? status.label.split(' ')[0] : null;
+          const nameSpan = <span>{c.name}{emoji ? ` ${emoji}` : ''}</span>;
 
           return (
             <div
               key={c.id}
               className={`simple-turn-order-row ${isActive ? 'simple-turn-order-row-active' : ''} ${isDead ? 'simple-turn-order-row-dead' : ''}`}
             >
-              <span>{c.name}{emoji ? ` ${emoji}` : ''}</span>
+              {(c.isMonster || c.isNpc) ? <HoverStatBlock monster={c}>{nameSpan}</HoverStatBlock> : nameSpan}
               <span className="simple-turn-order-init">{c.initiativeScore}</span>
             </div>
           );

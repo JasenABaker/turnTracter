@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getCombatantStatus } from '../utils/combatantStatus';
 import AbilityScoreGrid from './AbilityScoreGrid';
 import CombatantStatusDialog from './CombatantStatusDialog';
+import HoverStatBlock from './HoverStatBlock';
 
 const ENTRY_LABELS = [
   ['trait', 'Trait'],
@@ -48,10 +49,12 @@ export default function CombatantStatCard({ members, isActive, onUpdate }) {
     <>
       <div className={cardClass} onClick={() => setShowDialog(true)}>
         <div className="stat-card-header">
-          <h3 className={isDead ? 'strikethrough' : ''}>
-            {baseName}
-            {members.length > 1 && <span className="stat-card-count">×{members.length}</span>}
-          </h3>
+          <HoverStatBlock monster={primary}>
+            <h3 className={isDead ? 'strikethrough' : ''}>
+              {baseName}
+              {members.length > 1 && <span className="stat-card-count">×{members.length}</span>}
+            </h3>
+          </HoverStatBlock>
           <div className="stat-card-header-right">
             {statusEmoji && <span className="tag tag-outline">{statusEmoji}</span>}
             {members.length === 1 ? (
