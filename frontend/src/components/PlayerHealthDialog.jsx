@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { updateHp } from '../api/api';
 import HpBar from './HpBar';
+import ConditionToggleGrid from './ConditionToggleGrid';
 
 function PlayerHealthRow({ player, onChanged }) {
   const [deltaValue, setDeltaValue] = useState('');
@@ -82,6 +83,7 @@ function PlayerHealthRow({ player, onChanged }) {
           <span className="player-health-max">/ {player.hp}</span>
         </div>
       </div>
+      <ConditionToggleGrid combatant={player} onSaved={onChanged} />
     </div>
   );
 }
@@ -90,7 +92,7 @@ export default function PlayerHealthDialog({ players, onClose, onSaved }) {
   return (
     <div className="dialog-backdrop" onClick={onClose}>
       <div className="dialog" onClick={e => e.stopPropagation()}>
-        <div className="dialog-title">Player Health</div>
+        <div className="dialog-title">{players.length === 1 ? players[0].name : 'Player Health'}</div>
         <div className="dialog-body">
           {players.length === 0 ? (
             <div className="empty-state">No players in this encounter.</div>

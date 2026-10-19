@@ -1,22 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useEncounterState } from '../hooks/useEncounterState';
+import { groupStatCardCombatants } from '../utils/combatantGrouping';
 import ActionBar from './ActionBar';
 import CombatantStatCard from './CombatantStatCard';
 import SimpleTurnOrder from './SimpleTurnOrder';
 import PlayerHealthDialog from './PlayerHealthDialog';
-
-function groupStatCardCombatants(combatants) {
-  const map = new Map();
-  for (const c of combatants) {
-    const key = c.sourceTemplateId ? `t:${c.sourceTemplateId}` : `n:${c.name}`;
-    if (!map.has(key)) map.set(key, []);
-    map.get(key).push(c);
-  }
-  return Array.from(map.values())
-    .map(members => members.slice().sort((a, b) => a.turnOrder - b.turnOrder))
-    .sort((a, b) => a[0].turnOrder - b[0].turnOrder);
-}
 
 export default function GmStatCards() {
   const { state, error, noActiveEncounter, refresh } = useEncounterState(2000);
@@ -100,7 +89,7 @@ export default function GmStatCards() {
             + Add Monster/NPC
           </Link>
         </div>
-        <SimpleTurnOrder combatants={state.combatants} activeTurnId={state.activeTurnId} currentRound={state.currentRound} />
+        <SimpleTurnOrder combatants={state.combatants} activeTurnId={state.activeTurnId} currentRound={state.currentRound} onUpdate={refresh} />
       </div>
     </div>
   );

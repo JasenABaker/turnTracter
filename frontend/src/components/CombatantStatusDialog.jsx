@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { updateHp, updateDamageTaken, updateCondition, updateDeathSaves } from '../api/api';
 import { getCombatantStatus } from '../utils/combatantStatus';
 import HpBar from './HpBar';
+import ConditionToggleGrid from './ConditionToggleGrid';
 
 function CombatantStatusRow({ combatant, onSaved, showName }) {
   const [deltaValue, setDeltaValue] = useState('');
@@ -136,6 +137,8 @@ function CombatantStatusRow({ combatant, onSaved, showName }) {
         </button>
       </div>
 
+      <ConditionToggleGrid combatant={combatant} onSaved={onSaved} />
+
       {isUnconscious && (
         <div className="death-saves combatant-status-death-saves">
           <span className="death-save-row-label">Saves</span>
@@ -163,7 +166,7 @@ export default function CombatantStatusDialog({ combatants, onClose, onSaved }) 
   const title = combatants.length > 1 ? `${baseName} ×${combatants.length}` : primary.name;
 
   return (
-    <div className="dialog-backdrop" onClick={onClose}>
+    <div className="dialog-backdrop dialog-backdrop-elevated" onClick={onClose}>
       <div className="dialog" onClick={e => e.stopPropagation()}>
         <div className="dialog-title">{title}</div>
         <div className="dialog-body">

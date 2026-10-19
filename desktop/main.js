@@ -13,6 +13,7 @@ let backendProcess = null;
 let mainWindow = null;
 let playerWindow = null;
 let companionTrackerWindow = null;
+let monsterRosterWindow = null;
 
 app.setName('TurnTracker');
 
@@ -113,6 +114,11 @@ function buildMenu() {
           accelerator: 'CmdOrCtrl+4',
           click: openCompanionTrackerWindow,
         },
+        {
+          label: 'Monster Roster',
+          accelerator: 'CmdOrCtrl+5',
+          click: openMonsterRosterWindow,
+        },
       ],
     },
   ];
@@ -150,6 +156,23 @@ function openCompanionTrackerWindow() {
   companionTrackerWindow.loadURL(`${BACKEND_URL}/companion-tracker`);
   companionTrackerWindow.on('closed', () => {
     companionTrackerWindow = null;
+  });
+}
+
+function openMonsterRosterWindow() {
+  if (monsterRosterWindow) {
+    monsterRosterWindow.focus();
+    return;
+  }
+  monsterRosterWindow = new BrowserWindow({
+    width: 1024,
+    height: 768,
+    title: 'TurnTracker — Monster Roster',
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+  });
+  monsterRosterWindow.loadURL(`${BACKEND_URL}/monster-roster`);
+  monsterRosterWindow.on('closed', () => {
+    monsterRosterWindow = null;
   });
 }
 

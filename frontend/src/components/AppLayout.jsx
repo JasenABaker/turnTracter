@@ -8,6 +8,7 @@ const VIEWS = [
   ['/gm', 'GM Dashboard'],
   ['/player', 'Player Display'],
   ['/stat-cards', 'Stat Cards'],
+  ['/monster-roster', 'Monster Roster'],
   ['/companions', 'Companions'],
   ['/companion-tracker', 'Companion Tracker'],
 ];
