@@ -25,6 +25,7 @@ public class DndBeyondMonsterService {
 
     private static final Pattern MONSTER_PATH_PATTERN = Pattern.compile("monsters/([\\w-]+)");
     private static final Pattern HIT_PATTERN = Pattern.compile("\\+(\\d+) to hit");
+    private static final Pattern ATTACK_ROLL_PATTERN = Pattern.compile("Attack Roll:?\\s*\\+(\\d+)");
     private static final Pattern DC_PATTERN = Pattern.compile("DC\\s*(\\d+)");
     private static final Pattern DAMAGE_PATTERN = Pattern.compile("(\\d+d\\d+(?:\\s*\\+\\s*\\d+)?)\\)?\\s+(\\w+)");
 
@@ -48,7 +49,7 @@ public class DndBeyondMonsterService {
         String html = fetchHtml(path);
         Document doc = Jsoup.parse(html);
 
-        Element statBlock = doc.selectFirst(".mon-stat-block");
+        Element statBlock = doc.selectFirst(".mon-stat-block, .mon-stat-block-2024");
         if (statBlock == null) {
             throw new IllegalArgumentException(LOAD_ERROR);
         }
@@ -61,9 +62,9 @@ public class DndBeyondMonsterService {
         combatant.setInitiativeScore(initiative);
         combatant.setIsMonster(true);
 
-        combatant.setHp(extractAttributeInt(statBlock, "Hit Points"));
+        combatant.setHp(extractAttributeInt(statBlock, "Hit Points", "HP"));
         combatant.setCurrentHp(combatant.getHp());
-        combatant.setArmorClass(extractAttributeInt(statBlock, "Armor Class"));
+        combatant.setArmorClass(extractAttributeInt(statBlock, "Armor Class", "AC"));
 
         parseMeta(statBlock, combatant);
         combatant.setSpeed(extractAttributeText(statBlock, "Speed"));
@@ -79,14 +80,39 @@ public class DndBeyondMonsterService {
         combatant.setLanguages(extractTidbit(statBlock, "Languages"));
         combatant.setChallengeRating(extractChallengeRating(statBlock));
 
-        combatant.setDamageImmunities(extractTidbitOrEmpty(statBlock, "Damage Immunities"));
-        combatant.setDamageResistances(extractTidbitOrEmpty(statBlock, "Damage Resistances"));
-        combatant.setDamageVulnerabilities(extractTidbitOrEmpty(statBlock, "Damage Vulnerabilities"));
-        combatant.setConditionImmunities(extractTidbitOrEmpty(statBlock, "Condition Immunities"));
+        combatant.setDamageResistances(extractTidbitOrEmpty(statBlock, "Damage Resistances", "Resistances"));
+        combatant.setDamageVulnerabilities(extractTidbitOrEmpty(statBlock, "Damage Vulnerabilities", "Vulnerabilities"));
+        applyImmunities(statBlock, combatant);
 
         addDescriptionBlockEntries(statBlock, combatant);
 
         return combatant;
+    }
+
+    private void applyImmunities(Element statBlock, Combatant combatant) {
+        String legacyDamage = extractTidbit(statBlock, "Damage Immunities");
+        String legacyCondition = extractTidbit(statBlock, "Condition Immunities");
+        if (legacyDamage != null || legacyCondition != null) {
+            combatant.setDamageImmunities(legacyDamage != null ? legacyDamage : "");
+            combatant.setConditionImmunities(legacyCondition != null ? legacyCondition : "");
+            return;
+        }
+        // 2024 stat blocks merge damage-type and condition immunities into one "Immunities"
+        // tidbit, semicolon-separated when both are present (e.g. "Fire, Poison; Charmed, Frightened").
+        String merged = extractTidbit(statBlock, "Immunities");
+        if (merged == null) {
+            combatant.setDamageImmunities("");
+            combatant.setConditionImmunities("");
+            return;
+        }
+        int semi = merged.indexOf(';');
+        if (semi >= 0) {
+            combatant.setDamageImmunities(merged.substring(0, semi).trim());
+            combatant.setConditionImmunities(merged.substring(semi + 1).trim());
+        } else {
+            combatant.setDamageImmunities(merged.trim());
+            combatant.setConditionImmunities("");
+        }
     }
 
     private String extractMonsterPath(String monsterUrl) {
@@ -116,7 +142,7 @@ public class DndBeyondMonsterService {
     }
 
     private String extractName(Element statBlock) {
-        Element nameLink = statBlock.selectFirst(".mon-stat-block__name-link");
+        Element nameLink = statBlock.selectFirst("[class$=__name-link]");
         String name = nameLink != null ? nameLink.text().trim() : null;
         if (name == null || name.isEmpty()) {
             throw new IllegalArgumentException(LOAD_ERROR);
@@ -130,7 +156,7 @@ public class DndBeyondMonsterService {
     }
 
     private void parseMeta(Element statBlock, Combatant combatant) {
-        Element metaEl = statBlock.selectFirst(".mon-stat-block__meta");
+        Element metaEl = statBlock.selectFirst("[class$=__meta]");
         if (metaEl == null) {
             return;
         }
@@ -149,24 +175,33 @@ public class DndBeyondMonsterService {
         }
     }
 
-    private String extractAttributeText(Element statBlock, String label) {
-        for (Element attr : statBlock.select(".mon-stat-block__attribute")) {
-            Element labelEl = attr.selectFirst(".mon-stat-block__attribute-label");
-            if (labelEl == null || !labelEl.text().trim().equalsIgnoreCase(label)) {
+    private String extractAttributeText(Element statBlock, String... labels) {
+        for (Element attr : statBlock.select("[class$=__attribute]")) {
+            Element labelEl = attr.selectFirst("[class$=__attribute-label]");
+            if (labelEl == null || !matchesAny(labelEl.text().trim(), labels)) {
                 continue;
             }
-            Element dataValue = attr.selectFirst(".mon-stat-block__attribute-data-value");
+            Element dataValue = attr.selectFirst("[class$=__attribute-data-value]");
             if (dataValue != null) {
                 return dataValue.text().trim();
             }
-            Element value = attr.selectFirst(".mon-stat-block__attribute-value, .mon-stat-block__attribute-data");
+            Element value = attr.selectFirst("[class$=__attribute-value], [class$=__attribute-data]");
             return value != null ? value.text().trim() : null;
         }
         return null;
     }
 
-    private int extractAttributeInt(Element statBlock, String label) {
-        String text = extractAttributeText(statBlock, label);
+    private boolean matchesAny(String text, String... candidates) {
+        for (String candidate : candidates) {
+            if (text.equalsIgnoreCase(candidate)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int extractAttributeInt(Element statBlock, String... labels) {
+        String text = extractAttributeText(statBlock, labels);
         if (text == null) {
             return 10;
         }
@@ -176,39 +211,54 @@ public class DndBeyondMonsterService {
 
     private int extractAbilityScore(Element statBlock, String abbrev) {
         Element stat = statBlock.selectFirst(".ability-block__stat--" + abbrev);
-        if (stat == null) {
-            return 10;
+        if (stat != null) {
+            Element score = stat.selectFirst(".ability-block__score");
+            if (score != null) {
+                try {
+                    return Integer.parseInt(score.text().trim());
+                } catch (NumberFormatException e) {
+                    return 10;
+                }
+            }
         }
-        Element score = stat.selectFirst(".ability-block__score");
-        if (score == null) {
-            return 10;
-        }
-        try {
-            return Integer.parseInt(score.text().trim());
-        } catch (NumberFormatException e) {
-            return 10;
-        }
-    }
-
-    private String extractTidbit(Element statBlock, String label) {
-        for (Element tidbit : statBlock.select(".mon-stat-block__tidbit")) {
-            Element labelEl = tidbit.selectFirst(".mon-stat-block__tidbit-label");
-            if (labelEl == null || !labelEl.text().trim().equalsIgnoreCase(label)) {
+        // 2024 stat blocks use a <table class="stat-table"> with STR/DEX/... row headers instead.
+        for (Element row : statBlock.select("table.stat-table tr")) {
+            Element th = row.selectFirst("th");
+            if (th == null || !th.text().trim().equalsIgnoreCase(abbrev)) {
                 continue;
             }
-            Element data = tidbit.selectFirst(".mon-stat-block__tidbit-data");
+            Element td = row.selectFirst("td");
+            if (td == null) {
+                return 10;
+            }
+            try {
+                return Integer.parseInt(td.text().trim());
+            } catch (NumberFormatException e) {
+                return 10;
+            }
+        }
+        return 10;
+    }
+
+    private String extractTidbit(Element statBlock, String... labels) {
+        for (Element tidbit : statBlock.select("[class$=__tidbit]")) {
+            Element labelEl = tidbit.selectFirst("[class$=__tidbit-label]");
+            if (labelEl == null || !matchesAny(labelEl.text().trim(), labels)) {
+                continue;
+            }
+            Element data = tidbit.selectFirst("[class$=__tidbit-data]");
             return data != null ? data.text().trim() : null;
         }
         return null;
     }
 
-    private String extractTidbitOrEmpty(Element statBlock, String label) {
-        String value = extractTidbit(statBlock, label);
+    private String extractTidbitOrEmpty(Element statBlock, String... labels) {
+        String value = extractTidbit(statBlock, labels);
         return value != null ? value : "";
     }
 
     private String extractChallengeRating(Element statBlock) {
-        String raw = extractTidbit(statBlock, "Challenge");
+        String raw = extractTidbit(statBlock, "Challenge", "CR");
         if (raw == null) {
             return null;
         }
@@ -218,8 +268,8 @@ public class DndBeyondMonsterService {
     }
 
     private void addDescriptionBlockEntries(Element statBlock, Combatant combatant) {
-        for (Element block : statBlock.select(".mon-stat-block__description-block")) {
-            Element headingEl = block.selectFirst(".mon-stat-block__description-block-heading");
+        for (Element block : statBlock.select("[class$=__description-block]")) {
+            Element headingEl = block.selectFirst("[class$=__description-block-heading]");
             if (headingEl == null) {
                 continue;
             }
@@ -227,7 +277,7 @@ public class DndBeyondMonsterService {
             if (category == null) {
                 continue;
             }
-            Element content = block.selectFirst(".mon-stat-block__description-block-content");
+            Element content = block.selectFirst("[class$=__description-block-content]");
             if (content == null) {
                 continue;
             }
@@ -280,6 +330,10 @@ public class DndBeyondMonsterService {
         Matcher hit = HIT_PATTERN.matcher(text);
         if (hit.find()) {
             return "+" + hit.group(1);
+        }
+        Matcher attackRoll = ATTACK_ROLL_PATTERN.matcher(text);
+        if (attackRoll.find()) {
+            return "+" + attackRoll.group(1);
         }
         Matcher dc = DC_PATTERN.matcher(text);
         if (dc.find()) {
