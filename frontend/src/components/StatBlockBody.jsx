@@ -9,7 +9,16 @@ const ENTRY_LABELS = [
   ['lair-action', 'Lair'],
 ];
 
-export default function StatBlockBody({ monster, maskUnknown = true }) {
+const ENTRY_SECTIONS = [
+  ['trait', 'Traits'],
+  ['action', 'Actions'],
+  ['bonus-action', 'Bonus Actions'],
+  ['reaction', 'Reactions'],
+  ['legendary-action', 'Legendary Actions'],
+  ['lair-action', 'Lair Actions'],
+];
+
+export default function StatBlockBody({ monster, maskUnknown = true, fullDescriptions = false }) {
   const entries = monster.entries || [];
   const attackEntries = entries.filter(e => e.category === 'action' && e.hitOrDc);
 
@@ -52,17 +61,36 @@ export default function StatBlockBody({ monster, maskUnknown = true }) {
         </div>
       )}
 
-      <div className="stat-card-entries">
-        {ENTRY_LABELS.map(([category, label]) => {
-          const names = entries.filter(e => e.category === category).map(e => e.name);
-          if (names.length === 0) return null;
-          return (
-            <div className="stat-card-entry-line" key={category}>
-              <strong>{label}</strong> {names.join(', ')}
-            </div>
-          );
-        })}
-      </div>
+      {fullDescriptions ? (
+        <div className="stat-block-entries-full">
+          {ENTRY_SECTIONS.map(([category, title]) => {
+            const items = entries.filter(e => e.category === category);
+            if (items.length === 0) return null;
+            return (
+              <div className="stat-block-section" key={category}>
+                <h4>{title}</h4>
+                {items.map(e => (
+                  <p className="stat-block-entry" key={e.id}>
+                    <strong className="stat-block-entry-name">{e.name}.</strong> {e.description}
+                  </p>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="stat-card-entries">
+          {ENTRY_LABELS.map(([category, label]) => {
+            const names = entries.filter(e => e.category === category).map(e => e.name);
+            if (names.length === 0) return null;
+            return (
+              <div className="stat-card-entry-line" key={category}>
+                <strong>{label}</strong> {names.join(', ')}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </>
   );
 }

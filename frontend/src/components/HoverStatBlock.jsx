@@ -47,7 +47,7 @@ export default function HoverStatBlock({ monster, children, className, as: Tag =
         >
           <div className="dialog-title">{monster.name}</div>
           <div className="dialog-body">
-            <StatBlockBody monster={monster} maskUnknown={false} />
+            <StatBlockBody monster={monster} maskUnknown={false} fullDescriptions />
           </div>
         </div>
       )}
